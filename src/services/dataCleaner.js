@@ -34,11 +34,16 @@ let latestReport = {
 function extractRawValue(row, mappedKey) {
   if (!row || !mappedKey) return null;
   
-  if (row.column_values && Array.isArray(row.column_values)) {
-    // Monday.com GraphQL Format
+  // Already-adapted canonical objects (from mondayService schema adapter)
+  // have plain fields — no column_values array. Return directly.
+  if (!row.column_values) {
+    return row[mappedKey] !== undefined ? row[mappedKey] : null;
+  }
+
+  if (Array.isArray(row.column_values)) {
+    // Monday.com GraphQL Format (raw, unadapted items)
     const col = row.column_values.find(c => c.id === mappedKey);
     if (col) {
-      // Prioritize plain text over raw JSON value
       return col.text !== undefined && col.text !== null ? col.text : col.value;
     }
     return null;
@@ -76,7 +81,7 @@ function normalizeDate(val) {
     return 'HEADER_ROW';
   }
   
-  // Format: YYYY-MM-DD
+  // Format: YYYY-MM-DD (already normalized — most common path from Monday adapter)
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     return str;
   }
@@ -84,10 +89,35 @@ function normalizeDate(val) {
   // Format: DD/MM/YYYY or D/M/YYYY
   const dmyMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
   if (dmyMatch) {
-    const day = dmyMatch[1].padStart(2, '0');
+    const day   = dmyMatch[1].padStart(2, '0');
     const month = dmyMatch[2].padStart(2, '0');
-    const year = dmyMatch[3];
+    const year  = dmyMatch[3];
     return `${year}-${month}-${day}`;
+  }
+
+  // FIX: Free-text date parsing for Collection Date (e.g. "15 Sep 2025", "September 2025")
+  // Handles formats: "DD Month YYYY", "Month YYYY", "DD-Mon-YY"
+  const monthNames = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+  };
+
+  // "15 Sep 2025" or "15 September 2025"
+  const dMonthYear = str.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (dMonthYear) {
+    const mon = monthNames[dMonthYear[2].slice(0, 3).toLowerCase()];
+    if (mon) {
+      return `${dMonthYear[3]}-${mon}-${dMonthYear[1].padStart(2, '0')}`;
+    }
+  }
+
+  // "Sep 2025" or "September 2025" — first day of month
+  const monthYear = str.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (monthYear) {
+    const mon = monthNames[monthYear[1].slice(0, 3).toLowerCase()];
+    if (mon) {
+      return `${monthYear[2]}-${mon}-01`;
+    }
   }
   
   // Fallback to standard parser
@@ -101,17 +131,19 @@ function normalizeDate(val) {
 
 /**
  * Strips formatting (symbols, commas) and coerces values to float.
+ * FIX: Allows negative values — do NOT clamp to zero.
+ * Used for fields like unbilledAmountExclGst which can legitimately be negative.
  */
 function sanitizeCurrency(val) {
   if (val === undefined || val === null || val === '') return null;
-  if (typeof val === 'number') return isNaN(val) ? 0.0 : val;
+  if (typeof val === 'number') return isNaN(val) ? null : val; // allow negatives
   
   // Strip everything except numbers, points, and minus signs
   const cleaned = String(val).replace(/[^\d\.\-]/g, '');
-  if (!cleaned) return null;
+  if (!cleaned || cleaned === '-') return null;
   
   const num = parseFloat(cleaned);
-  return isNaN(num) ? null : num;
+  return isNaN(num) ? null : num; // negative values pass through unchanged
 }
 
 /**
@@ -121,7 +153,7 @@ function normalizeDealStatus(val) {
   if (!val) return 'Open';
   const str = String(val).trim().toLowerCase();
   
-  const wonSynonyms = ['won', 'project won', 'closed won', 'g. project won'];
+  const wonSynonyms  = ['won', 'project won', 'closed won', 'g. project won'];
   const deadSynonyms = ['dead', 'lost', 'l. project lost', 'not relevant'];
   const holdSynonyms = ['on hold', 'hold', 'm. projects on hold'];
   
@@ -130,6 +162,22 @@ function normalizeDealStatus(val) {
   if (holdSynonyms.includes(str)) return 'On Hold';
   
   return 'Open';
+}
+
+/**
+ * FIX: Normalizes Billing Status — corrects the "BIlled" typo present in live Monday data.
+ * Also normalizes any other casing variations.
+ */
+function normalizeBillingStatus(val) {
+  if (!val) return 'Unbilled';
+  const str = String(val).trim();
+  // Fix the confirmed typo from live board: "BIlled" → "Billed"
+  const lower = str.toLowerCase();
+  if (lower === 'billed' || lower === 'billed') return 'Billed';
+  if (lower === 'partially billed') return 'Partially Billed';
+  if (lower === 'not billed yet' || lower === 'unbilled') return 'Unbilled';
+  if (lower === 'update required') return 'Update Required';
+  return str; // preserve any other value as-is
 }
 
 /**
@@ -282,18 +330,24 @@ function cleanDeals(rawItems, customMappings) {
     }
 
     // Construct Canonical Object
+    // When items come from mondayService adapter, fields are already at the top level.
+    // When from Excel, they are extracted via extractRawValue.
     const canonical = {
-      id: row.id || `deal_${idx}`,
-      name: String(rawName).trim(),
-      ownerCode: String(extractRawValue(row, mappings.owner) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      clientCode: String(extractRawValue(row, mappings.client) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      status: finalStatus,
-      stage: String(extractRawValue(row, mappings.stage) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      value: finalVal,
-      probability: String(extractRawValue(row, mappings.probability) || 'None').trim(),
-      sector: String(extractRawValue(row, mappings.sector) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      createdDate: finalCreated,
-      closeDate: cleanCloseDate || null
+      id:         row.id || `deal_${idx}`,
+      name:       String(rawName).trim(),
+      ownerCode:  String(extractRawValue(row, mappings.owner)  || row.ownerCode  || constants.CLEANER_DEFAULTS.STRING).trim(),
+      clientCode: String(extractRawValue(row, mappings.client) || row.clientCode || constants.CLEANER_DEFAULTS.STRING).trim(),
+      status:     finalStatus,
+      stage:      String(extractRawValue(row, mappings.stage)  || row.stage      || constants.CLEANER_DEFAULTS.STRING).trim(),
+      value:      finalVal,
+      probability:String(extractRawValue(row, mappings.probability) || row.closureProbability || 'None').trim(),
+      sector:     String(extractRawValue(row, mappings.sector) || row.sector     || constants.CLEANER_DEFAULTS.STRING).trim(),
+      createdDate:finalCreated,
+      closeDate:  cleanCloseDate || row.closeDate || null,
+      // Pass-through extra canonical fields from Monday adapter
+      tentativeCloseDate: row.tentativeCloseDate || null,
+      productType:        row.productType        || 'N/A',
+      closureProbability: row.closureProbability || 'None',
     };
 
     cleaned.push(canonical);
@@ -376,14 +430,13 @@ function cleanWorkOrders(rawItems, customMappings) {
       return;
     }
 
-    // 4. Processing
-    // Status
+    // Status (with billing status typo fix)
     const finalStatus = normalizeWorkOrderStatus(rawStatus);
     if (rawStatus && finalStatus !== rawStatus) {
       statusCor++;
     }
 
-    // Currency values
+    // Currency values — allow negatives for unbilled amounts
     const cleanAmt = sanitizeCurrency(rawAmtExcl);
     if (rawAmtExcl !== undefined && rawAmtExcl !== null && rawAmtExcl !== '' && cleanAmt === null) {
       badCurrency++;
@@ -396,38 +449,59 @@ function cleanWorkOrders(rawItems, customMappings) {
     }
 
     // Dates
-    const rawDelivery = extractRawValue(row, mappings.dataDeliveryDate);
-    const rawPo = extractRawValue(row, mappings.poDate);
-    const rawStart = extractRawValue(row, mappings.startDate);
-    const rawEnd = extractRawValue(row, mappings.endDate);
+    const rawDelivery = extractRawValue(row, mappings.dataDeliveryDate) || row.dataDeliveryDate || row.deliveryDate;
+    const rawPo       = extractRawValue(row, mappings.poDate)            || row.poDate;
+    const rawStart    = extractRawValue(row, mappings.startDate)         || row.startDate;
+    const rawEnd      = extractRawValue(row, mappings.endDate)           || row.endDate;
+    // FIX: Collection Date is free text — normalizeDate handles it with expanded parser
+    const rawCollDate = extractRawValue(row, mappings.collectionDate)    || row.collectionDate;
 
-    const cleanDelivery = normalizeDate(rawDelivery);
-    const cleanPo = normalizeDate(rawPo);
-    const cleanStart = normalizeDate(rawStart);
-    const cleanEnd = normalizeDate(rawEnd);
+    const cleanDelivery  = normalizeDate(rawDelivery);
+    const cleanPo        = normalizeDate(rawPo);
+    const cleanStart     = normalizeDate(rawStart);
+    const cleanEnd       = normalizeDate(rawEnd);
+    const cleanCollDate  = normalizeDate(rawCollDate);
 
     if (rawDelivery && !cleanDelivery) badDates++;
-    if (rawPo && !cleanPo) badDates++;
-    if (rawStart && !cleanStart) badDates++;
-    if (rawEnd && !cleanEnd) badDates++;
+    if (rawPo       && !cleanPo)       badDates++;
+    if (rawStart    && !cleanStart)    badDates++;
+    if (rawEnd      && !cleanEnd)      badDates++;
 
-    // Canonical representation
+    // FIX: normalize billing status, fixing "BIlled" typo
+    const rawBillingStatus = extractRawValue(row, mappings.billingStatus) || row.billingStatus;
+    const finalBillingStatus = normalizeBillingStatus(rawBillingStatus);
+
+    // Canonical representation — pass-through all adapter fields
     const canonical = {
-      id: row.id || String(rawSerial).trim(),
-      serialNumber: String(rawSerial).trim(),
-      dealName: String(rawDealName).trim(),
-      customerCode: String(extractRawValue(row, mappings.customerCode) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      natureOfWork: String(extractRawValue(row, mappings.natureOfWork) || constants.CLEANER_DEFAULTS.STRING).trim(),
+      id:              row.id || String(rawSerial).trim(),
+      serialNumber:    String(rawSerial).trim(),
+      dealName:        String(rawDealName).trim(),
+      customerCode:    String(extractRawValue(row, mappings.customerCode) || row.customerCode || constants.CLEANER_DEFAULTS.STRING).trim(),
+      natureOfWork:    String(extractRawValue(row, mappings.natureOfWork) || row.natureOfWork || constants.CLEANER_DEFAULTS.STRING).trim(),
       executionStatus: finalStatus,
-      dataDeliveryDate: cleanDelivery || null,
-      poDate: cleanPo || null,
-      startDate: cleanStart || null,
-      endDate: cleanEnd || null,
-      ownerCode: String(extractRawValue(row, mappings.owner) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      sector: String(extractRawValue(row, mappings.sector) || constants.CLEANER_DEFAULTS.STRING).trim(),
-      amountExclGst: finalAmt,
-      amountInclGst: sanitizeCurrency(extractRawValue(row, mappings.amountInclGst)) || 0.0,
-      billingStatus: String(extractRawValue(row, mappings.billingStatus) || 'Unbilled').trim()
+      dataDeliveryDate:cleanDelivery  || null,
+      deliveryDate:    cleanDelivery  || null,
+      poDate:          cleanPo        || null,
+      startDate:       cleanStart     || null,
+      endDate:         cleanEnd       || null,
+      collectionDate:  cleanCollDate  || null,
+      ownerCode:       String(extractRawValue(row, mappings.owner)   || row.ownerCode  || constants.CLEANER_DEFAULTS.STRING).trim(),
+      sector:          String(extractRawValue(row, mappings.sector)  || row.sector     || constants.CLEANER_DEFAULTS.STRING).trim(),
+      // FIX: unbilledAmountExclGst is allowed to be negative — use sanitizeCurrency without flooring
+      amountExclGst:        finalAmt,
+      amountInclGst:        sanitizeCurrency(extractRawValue(row, mappings.amountInclGst) || row.amountInclGst) ?? 0,
+      billedValueExclGst:   sanitizeCurrency(row.billedValueExclGst)   ?? 0,
+      billedValueInclGst:   sanitizeCurrency(row.billedValueInclGst)   ?? 0,
+      collectedAmount:      sanitizeCurrency(row.collectedAmount)       ?? 0,
+      unbilledAmountExclGst:sanitizeCurrency(row.unbilledAmountExclGst) ?? 0, // CAN be negative
+      unbilledAmountInclGst:sanitizeCurrency(row.unbilledAmountInclGst) ?? 0,
+      amountReceivable:     sanitizeCurrency(row.amountReceivable)      ?? 0,
+      billingStatus:   finalBillingStatus,
+      invoiceStatus:   row.invoiceStatus   || 'N/A',
+      woStatus:        row.woStatus        || 'Open',
+      documentType:    row.documentType    || 'N/A',
+      skylarkPlatform: row.skylarkPlatform || 'NONE',
+      typeOfWork:      row.typeOfWork      || 'N/A',
     };
 
     cleaned.push(canonical);
@@ -489,5 +563,6 @@ module.exports = {
   normalizeDate,
   sanitizeCurrency,
   normalizeDealStatus,
-  normalizeWorkOrderStatus
+  normalizeWorkOrderStatus,
+  normalizeBillingStatus,
 };

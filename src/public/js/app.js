@@ -114,22 +114,24 @@ async function executeSync() {
   syncBtn.classList.add('skeleton');
   renderKpiSkeletons();
   
-  store.addActivity('Initiating dataset sync query...');
+  store.addActivity('Initiating live Monday.com dataset sync...');
   
   try {
-    const result = await api.syncData();
+    await api.syncData();
     
     // Invalidate cached rows
     cachedRawDeals = [];
     cachedRawWOs = [];
     
+    // Reload dashboard from live data
+    await loadDashboard();
     await loadIntegrityStatus();
     
     store.setSyncTime(new Date().toLocaleTimeString());
-    showToast('Mock Board records synchronized.', 'success');
+    showToast('Live Monday.com data synchronized.', 'success');
   } catch (error) {
     showToast(error.message, 'danger');
-    logger.error('App', 'Synchronization fail', error);
+    console.error('Synchronization failed:', error);
   } finally {
     syncBtn.disabled = false;
     syncBtn.classList.remove('skeleton');
@@ -193,30 +195,34 @@ async function loadIntegrityStatus() {
       store.setColumnMappings(data.columnMappings);
     }
 
-    // Attempt to pull mock dataset caches (helps fill Data Ledger tab immediately)
-    if (data.connected && data.hasDealsBoard && data.hasWorkOrdersBoard) {
-      // Query the API endpoint directly to fetch calculations context
-      const queryRes = await api.queryTerminal('Calculate won deals, backlog value, and revenue leakage');
-      const details = queryRes.data;
-      
-      if (details.dataHealth) {
-        store.setDataHealth(details.dataHealth);
-      }
-      
-      // Seed default dashboard widgets
-      const defaultKPIs = {
-        revenue: { value: 308300, formula: 'Sum of completed work orders excl GST' },
-        backlog: { value: 508000, formula: 'Sum of active undelivered work orders' },
-        revenueLeakage: { value: 45000, count: 1, formula: 'Won deals without active work orders' },
-        fulfillmentCycleTime: { value: 14.2, formula: 'Handoff cycle time average' }
-      };
-      store.setKPIs(defaultKPIs);
-    }
-    
     hideErrorBanner();
   } catch (error) {
     showErrorBanner('Terminal offline. Failed to connect to local host router.');
     store.setConnectionStatus('disconnected');
+  }
+}
+
+/**
+ * Loads live KPI dashboard data from the /api/dashboard endpoint.
+ * This is the primary data entry point — all KPI values come from here.
+ */
+async function loadDashboard() {
+  try {
+    store.addActivity('Loading live analytics from Monday.com...');
+    const res = await api.getDashboard();
+    const data = res.data;
+
+    if (data.kpis) {
+      store.setKPIs(data.kpis);
+    }
+    if (data.dataHealth) {
+      store.setDataHealth(data.dataHealth);
+    }
+    store.setSyncTime(new Date().toLocaleTimeString());
+    store.addActivity(`Loaded: ${data.recordCounts?.deals || 0} deals, ${data.recordCounts?.workOrders || 0} work orders`);
+  } catch (error) {
+    showErrorBanner(`Failed to load dashboard data: ${error.message}`);
+    console.error('Dashboard load failed:', error);
   }
 }
 
@@ -365,6 +371,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   store.addActivity('Terminal core online');
   
-  // Load initial settings status
+  // 1. Load connection status
   await loadIntegrityStatus();
+
+  // 2. Load live KPIs from Monday.com
+  await loadDashboard();
 });

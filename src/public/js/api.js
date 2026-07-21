@@ -35,9 +35,13 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
-  getHealth: () => request('/health'),
-  getBoards: () => request('/monday/boards'),
-  getStatus: () => request('/monday/status'),
+  getHealth:     () => request('/health'),
+  getBoards:     () => request('/monday/boards'),
+  getStatus:     () => request('/monday/status'),
+  getDashboard:  () => request('/dashboard'),
+  getAnalytics:  () => request('/analytics'),
+  getKPIs:       () => request('/analytics/kpis'),
+  getDataHealth: () => request('/data-health'),
   saveConfig: (configData) => request('/monday/config', {
     method: 'POST',
     body: JSON.stringify(configData)
@@ -45,8 +49,12 @@ export const api = {
   syncData: () => request('/monday/sync', {
     method: 'POST'
   }),
+  refresh: () => request('/refresh', {
+    method: 'POST'
+  }),
   queryTerminal: (queryText) => request('/query', {
     method: 'POST',
     body: JSON.stringify({ query: queryText })
   })
 };
+
