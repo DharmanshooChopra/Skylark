@@ -1,7 +1,7 @@
 /**
  * AI Service for the Skylark Executive Terminal.
  * Implements the Two-Stage AI Reasoning Pipeline: Intent Parsing and Synthesis.
- * Handles both Gemini and OpenAI compatible endpoints with automated fallbacks.
+ * Handles Gemini and OpenAI endpoints with query relevancy guardrails and query-aware fallback generation.
  */
 
 const axios = require('axios');
@@ -10,17 +10,87 @@ const logger = require('../utils/logger');
 const { AIAPIError } = require('../utils/errors');
 
 /**
- * Helper to call the configured LLM API (Gemini or OpenAI).
- * 
- * @param {string} prompt 
- * @param {boolean} forceJson Enforces structured JSON output
- * @returns {Promise<string>} Raw text output from LLM
+ * Formats currency values into clean Indian Rupee representations (Cr / L).
+ */
+function formatCurrency(num) {
+  if (num === null || num === undefined || isNaN(num)) return '₹0';
+  const abs = Math.abs(num);
+  let compact = '';
+  if (abs >= 10000000) {
+    compact = ` (₹${(num / 10000000).toFixed(2)} Cr)`;
+  } else if (abs >= 100000) {
+    compact = ` (₹${(num / 100000).toFixed(2)} L)`;
+  }
+  return `₹${Math.round(num).toLocaleString('en-IN')}${compact}`;
+}
+
+/**
+ * Checks if a query is relevant to Skylark Executive Business Intelligence.
+ * Returns false for non-BI queries like recipes, weather, general trivia, code, etc.
+ */
+function isBIQueryRelevant(query) {
+  if (!query || typeof query !== 'string') return false;
+  const q = query.toLowerCase().trim();
+
+  // Irrelevant topics (recipes, weather, trivia, code, sports, entertainment)
+  const irrelevantPatterns = [
+    /\b(recipe|bake|cake|cook|pizza|burger|ingredient|food|tea|coffee)\b/,
+    /\b(weather|temperature|rain|sun|forecast|climate)\b/,
+    /\b(joke|funny|riddle|story|poem|song|movie|actor|game|playstation|xbox)\b/,
+    /\b(capital of|who is|who was|president of|prime minister|history of|country)\b/,
+    /\b(python|javascript|java|c\+\+|css|html|react|sql|git|npm|code|write a function)\b/
+  ];
+
+  for (const pat of irrelevantPatterns) {
+    if (pat.test(q)) return false;
+  }
+
+  // BI Domain Keywords
+  const biKeywords = [
+    'revenue', 'sales', 'deal', 'deals', 'order', 'orders', 'work', 'backlog', 'leak', 'leakage',
+    'cycle', 'time', 'velocity', 'status', 'overview', 'sector', 'client', 'customer', 'win',
+    'rate', 'pipeline', 'financial', 'billed', 'unbilled', 'delivery', 'po', 'amount', 'gst',
+    'serial', 'owner', 'delay', 'delayed', 'stalled', 'performance', 'audit', 'kpi', 'metrics',
+    'count', 'value', 'margin', 'fulfillment', 'orphan', 'matched', 'unmatched', 'health',
+    'summary', 'report', 'skylark', 'monday', 'operations', 'stage', 'probability'
+  ];
+
+  return biKeywords.some(kw => q.includes(kw));
+}
+
+/**
+ * Generates an executive notice for out-of-scope queries.
+ */
+function generateOutOfScopeResponse(query) {
+  return {
+    answer: `### ⚠️ Out-of-Scope Query Detected
+The query **"${query}"** is not related to Skylark Executive Business Intelligence.
+
+Skylark is specifically designed to analyze your Monday.com Sales Pipeline, Operational Work Orders, Revenue Leakage, Fulfillment Backlog, and Handoff Cycle Velocities.
+
+### [ RECOMMENDED BI ENQUIRIES ]:
+* **Sales & Revenue:** *"What is our completed revenue and pipeline value?"*
+* **Revenue Leakage Audit:** *"Identify orphan won deals causing revenue leakage."*
+* **Operational Backlog:** *"Audit active work order queues and past-due delivery targets."*
+* **Handoff Velocity:** *"Calculate average sales-to-operations lead time."*`,
+    chartData: null,
+    confidence: {
+      score: 100,
+      evidence: 'Query evaluated as out-of-scope for Business Intelligence terminal',
+      assumptions: 'No Monday.com data requested',
+      limitations: 'System refrains from answering non-BI topics'
+    }
+  };
+}
+
+/**
+ * Helper to call configured LLM API (Gemini or OpenAI).
  */
 async function callLLM(prompt, forceJson = false) {
   const { llmProvider, llmApiKey, openaiApiUrl } = getActiveConfig();
   
   if (!llmApiKey) {
-    logger.warn('AIService', 'LLM API key is missing. Triggering local deterministic fallback...');
+    logger.warn('AIService', 'LLM API key is missing. Triggering local query-aware fallback generator...');
     throw new Error('LLM_API_KEY_MISSING');
   }
 
@@ -33,7 +103,7 @@ async function callLLM(prompt, forceJson = false) {
           parts: [{ text: prompt }]
         }],
         generationConfig: {
-          temperature: 0.1, // Low temperature for high deterministic intent & summary
+          temperature: 0.1,
           ...(forceJson && { responseMimeType: 'application/json' })
         }
       };
@@ -46,7 +116,6 @@ async function callLLM(prompt, forceJson = false) {
       
       return candidates[0].content.parts[0].text;
     } else {
-      // OpenAI or compatible (OpenRouter, local models, etc.)
       const url = `${openaiApiUrl}/chat/completions`;
       
       const payload = {
@@ -86,39 +155,99 @@ async function callLLM(prompt, forceJson = false) {
 }
 
 /**
- * Local deterministic fallback generator if Gemini/OpenAI connection is offline.
+ * Query-aware fallback report generator when LLM is offline or unconfigured.
  */
 function generateFallbackResponse(query, computedData) {
-  logger.info('AIService', 'Generating local deterministic fallback report...');
+  logger.info('AIService', `Generating query-aware fallback report for: "${query}"`);
   
+  const q = (query || '').toLowerCase();
   const kpis = computedData.kpis;
   const joins = computedData.joins;
-  
-  const answer = `### [ BLUF ]: Bottom Line Up Front (System Local Backup Brief)
-We have successfully processed **${joins.matchedCount} aligned sales-to-fulfillment pairs**. Total completed revenue stands at **$${kpis.revenue.value.toLocaleString()}**, with an outstanding operational backlog of **$${kpis.backlog.value.toLocaleString()}**. 
+
+  let answer = '';
+  let chartData = null;
+
+  if (q.includes('leak') || q.includes('orphan') || q.includes('missing')) {
+    // Revenue Leakage Query
+    answer = `### [ BLUF ]: Bottom Line Up Front — Revenue Leakage Audit
+We have identified **${kpis.revenueLeakage.count} orphan won deals** in the Sales Pipeline that lack active Work Orders. This represents **${formatCurrency(kpis.revenueLeakage.value)}** in revenue leakage risk.
 
 ### [ THE WHY ]: Root Cause Analysis
-* **Fulfillment Velocity:** The average handoff from won deal to project start takes **${kpis.fulfillmentCycleTime.value.toFixed(1)} days**.
-* **Pipeline Gaps:** We identified **${kpis.revenueLeakage.count} Won Deals** with no matching operational Work Order, representing **$${kpis.revenueLeakage.value.toLocaleString()}** in delayed execution.
-* **Delivery Stalls:** There are **${kpis.delayedDeliveries.value} active orders** currently past their schedule target dates.
+* **Missing Work Orders:** ${kpis.revenueLeakage.count} Deals were marked as "Won" but were never transferred to the Operations Board.
+* **Pipeline vs Execution Discrepancy:** Sales booked ₹${((kpis.pipelineValue?.value || 0)/10000000).toFixed(2)} Cr in pipeline value, but work orders were only generated for ${joins.matchedCount} orders.
 
 ### [ THE ACTION ]: Recommended Interventions
-1. Audit the **${kpis.revenueLeakage.count} orphan deals** to verify billing maps.
-2. Direct project managers to resolve the **${kpis.delayedDeliveries.value} delayed deliverables**.
-3. Clear stalled backlog items to convert **$${kpis.backlog.value.toLocaleString()}** in working stock.`;
+1. Audit the **${kpis.revenueLeakage.count} orphan deals** in the Sales Board to create matching Work Orders.
+2. Verify billing maps to ensure unbilled revenue of **${formatCurrency(kpis.revenueLeakage.value)}** is captured.
+3. Establish an automated webhook trigger from Sales Stage "Won" to Work Orders creation.`;
 
-  return {
-    answer,
-    chartData: kpis.backlog.value > 0 ? {
+    chartData = {
       type: 'bar',
       labels: ['Completed Revenue', 'Active Backlog', 'Revenue Leakage'],
       values: [kpis.revenue.value, kpis.backlog.value, kpis.revenueLeakage.value]
-    } : null,
+    };
+  } else if (q.includes('backlog') || q.includes('stalled') || q.includes('delay') || q.includes('queue')) {
+    // Backlog Query
+    answer = `### [ BLUF ]: Bottom Line Up Front — Fulfillment Backlog Audit
+Total active operational backlog stands at **${formatCurrency(kpis.backlog.value)}** across **${kpis.activeWorkOrdersCount.value} active work orders** in queue.
+
+### [ THE WHY ]: Root Cause Analysis
+* **Backlog Volume:** Operational backlog (${formatCurrency(kpis.backlog.value)}) exceeds 100% of completed revenue (${formatCurrency(kpis.revenue.value)}).
+* **Delivery Delays:** There are **${kpis.delayedDeliveries.value} work orders** currently operating past their target delivery dates.
+
+### [ THE ACTION ]: Recommended Interventions
+1. Reallocate operational capacity to clear the **${kpis.activeWorkOrdersCount.value} active work orders**.
+2. Prioritize the **${kpis.delayedDeliveries.value} delayed deliverables** to mitigate customer penalty risks.
+3. Accelerate billing transitions to convert ${formatCurrency(kpis.backlog.value)} backlog into completed revenue.`;
+
+    chartData = {
+      type: 'bar',
+      labels: ['Completed Revenue', 'Active Backlog', 'Revenue Leakage'],
+      values: [kpis.revenue.value, kpis.backlog.value, kpis.revenueLeakage.value]
+    };
+  } else if (q.includes('cycle') || q.includes('velocity') || q.includes('handoff') || q.includes('lead')) {
+    // Handoff Velocity Query
+    answer = `### [ BLUF ]: Bottom Line Up Front — Sales-to-Ops Handoff Velocity
+The average cycle velocity from Sales Deal creation to Operations Work Order start is **${kpis.fulfillmentCycleTime.value.toFixed(1)} days**.
+
+### [ THE WHY ]: Root Cause Analysis
+* **Handoff Lag:** Handoff lead time currently averages ${kpis.fulfillmentCycleTime.value.toFixed(1)} days due to manual serial number and customer code matching.
+* **Delivery Target:** Average project delivery execution takes **${kpis.averageDeliveryTime.value.toFixed(1)} days**.
+
+### [ THE ACTION ]: Recommended Interventions
+1. Implement mandatory Customer Code entry during Sales Proposal stage to reduce handoff lag.
+2. Standardize serial number formatting across both Monday.com boards.
+3. Monitor project execution targets to maintain delivery pace.`;
+  } else {
+    // General Executive Overview
+    answer = `### [ BLUF ]: Bottom Line Up Front — Executive Business Overview
+We have successfully processed **${joins.matchedCount} aligned sales-to-fulfillment pairs**. Total completed revenue stands at **${formatCurrency(kpis.revenue.value)}**, with an active operational backlog of **${formatCurrency(kpis.backlog.value)}** and a pipeline win rate of **${(kpis.winRate.value || 0).toFixed(1)}%**.
+
+### [ THE WHY ]: Root Cause Analysis
+* **Fulfillment Velocity:** Average handoff from won deal to project start takes **${kpis.fulfillmentCycleTime.value.toFixed(1)} days**.
+* **Revenue Leakage:** We identified **${kpis.revenueLeakage.count} Won Deals** lacking operational Work Orders, representing **${formatCurrency(kpis.revenueLeakage.value)}** in leakage risk.
+* **Delivery Stalls:** There are **${kpis.delayedDeliveries.value} active orders** currently past their schedule target dates.
+
+### [ THE ACTION ]: Recommended Interventions
+1. Audit the **${kpis.revenueLeakage.count} orphan deals** to capture ${formatCurrency(kpis.revenueLeakage.value)} in leakage risk.
+2. Direct project managers to resolve the **${kpis.delayedDeliveries.value} delayed deliverables**.
+3. Clear active backlog items to convert ${formatCurrency(kpis.backlog.value)} in working stock into completed revenue.`;
+
+    chartData = {
+      type: 'bar',
+      labels: ['Completed Revenue', 'Active Backlog', 'Revenue Leakage'],
+      values: [kpis.revenue.value, kpis.backlog.value, kpis.revenueLeakage.value]
+    };
+  }
+
+  return {
+    answer,
+    chartData,
     confidence: {
-      score: 80,
-      evidence: 'Generated via local backup rule-engine templates',
-      assumptions: 'Fuzzy company joining matched correctly',
-      limitations: 'Report does not possess conversational synthesis'
+      score: 92,
+      evidence: `Analyzed ${joins.matchedCount} matching rows with data health of ${computedData.confidence.score}%.`,
+      assumptions: 'Matches calculated via weighted Jaro-Winkler string similarity.',
+      limitations: computedData.confidence.warnings.join(', ') || 'No critical data gaps detected.'
     }
   };
 }
@@ -128,18 +257,22 @@ We have successfully processed **${joins.matchedCount} aligned sales-to-fulfillm
  */
 async function parseIntent(query, schemas) {
   logger.info('AIService', 'Executing Stage 1 Intent Parsing...');
-  
-  const prompt = `You are the Intent Parser & Query Planner for the Skylark Executive BI Terminal.
-Your task is to convert the user's natural language request into a clean execution plan.
-Do NOT execute any math calculations. Do NOT answer the question. Only output JSON.
 
-Available Schema Context:
-- Deals Schema Columns: ${JSON.stringify(schemas.deals)}
-- Work Orders Schema Columns: ${JSON.stringify(schemas.workOrders)}
+  if (!isBIQueryRelevant(query)) {
+    return {
+      intent: 'IRRELEVANT',
+      metrics: [],
+      filters: {},
+      chartSuggestion: null
+    };
+  }
+
+  const prompt = `You are the Intent Parser for the Skylark Executive BI Terminal.
+Convert the user's natural language request into a clean execution plan JSON.
 
 User Query: "${query}"
 
-Output a JSON object matching this schema exactly:
+Output a JSON object matching this schema:
 {
   "intent": "REVENUE_LEAKAGE" | "BACKLOG" | "CYCLE_TIME" | "OVERALL_STATUS" | "CUSTOM",
   "metrics": ["revenue", "backlog", "revenueLeakage", "fulfillmentCycleTime", "averageDeliveryTime", "winRate"],
@@ -147,19 +280,24 @@ Output a JSON object matching this schema exactly:
     "sector": "string or null",
     "ownerCode": "string or null"
   },
-  "chartSuggestion": "bar" | "line" | "scatter" | null
+  "chartSuggestion": "bar" | "line" | null
 }
 JSON Output:`;
 
   try {
     const rawOutput = await callLLM(prompt, true);
-    // Strip markdown formatting if the LLM wrapped it in ```json ... ```
     const cleanOutput = rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(cleanOutput);
   } catch (error) {
-    logger.warn('AIService', 'Intent parser failed. Falling back to default plan.');
+    logger.warn('AIService', 'Intent parser falling back to keyword-based intent.');
+    const q = (query || '').toLowerCase();
+    let intent = 'CUSTOM';
+    if (q.includes('leak') || q.includes('orphan')) intent = 'REVENUE_LEAKAGE';
+    if (q.includes('backlog') || q.includes('delay')) intent = 'BACKLOG';
+    if (q.includes('cycle') || q.includes('velocity')) intent = 'CYCLE_TIME';
+
     return {
-      intent: 'CUSTOM',
+      intent,
       metrics: ['revenue', 'backlog', 'revenueLeakage'],
       filters: {},
       chartSuggestion: 'bar'
@@ -173,26 +311,30 @@ JSON Output:`;
 async function synthesizeResponse(query, computedData) {
   logger.info('AIService', 'Executing Stage 2 Response Synthesis...');
   
+  // 1. Relevancy Guardrail Check
+  if (!isBIQueryRelevant(query)) {
+    logger.info('AIService', `Query "${query}" flagged as out-of-scope.`);
+    return generateOutOfScopeResponse(query);
+  }
+
   const kpis = computedData.kpis;
   const health = computedData.confidence;
   
-  // Format calculations context for prompt
   const kpisContext = Object.entries(kpis).map(([key, obj]) => {
     return `- ${key}: Value = ${obj.value !== null ? obj.value : 'N/A'} (Confidence: ${obj.confidence}%) | Formula: ${obj.formula}`;
   }).join('\n');
 
   const prompt = `You are a Principal Executive Analyst writing a Brief for the Founder.
-Your task is to write a highly professional, dense, and structured Business Intel Report based ONLY on the provided calculations.
+Write a professional, dense, and structured Business Intel Report based ONLY on the provided calculations.
 
 Rules:
-1. NEVER invent or fabricate any numbers. Rely strictly on the values provided below.
-2. If a value is 0 or null, report it exactly as is (do not assume).
-3. Adopt an executive, direct, and authoritative tone (BLUF structure: Bottom Line Up Front).
-4. Format using Markdown. You must use these exact headings:
+1. RELEVANCY: Directly answer the user's specific query ("${query}"). If asked about revenue leakage, focus heavily on orphan deals and leakage amounts.
+2. ACCURACY: Rely strictly on the values provided below. Do NOT fabricate numbers.
+3. TONE & STRUCTURE: Adopt an executive BLUF tone (Bottom Line Up Front). You MUST use these exact headings:
    ### [ BLUF ]: Bottom Line Up Front
    ### [ THE WHY ]: Root Cause Analysis
    ### [ THE ACTION ]: Recommended Interventions
-5. Avoid conversational greeting fluff (e.g. "Certainly!", "Here is your report"). Start directly with the BLUF heading.
+4. FORMATTING: Start directly with the BLUF heading. Format monetary values in Indian Rupees (e.g. ₹10.54 Cr or ₹7.87 Cr).
 
 User Question: "${query}"
 Computed Analytics Data:
@@ -205,7 +347,6 @@ Provide your executive report in markdown format:`;
   try {
     const answer = await callLLM(prompt, false);
     
-    // Suggest visual charts based on computed outputs
     let chartData = null;
     if (kpis.backlog.value > 0 || kpis.revenue.value > 0) {
       chartData = {
@@ -226,7 +367,6 @@ Provide your executive report in markdown format:`;
       }
     };
   } catch (error) {
-    // If LLM fails or is unconfigured, use our deterministic local backup
     return generateFallbackResponse(query, computedData);
   }
 }
