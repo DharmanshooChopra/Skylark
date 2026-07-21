@@ -17,7 +17,8 @@ import {
   renderKPIs, 
   renderDataHealth, 
   renderActivityLog, 
-  renderLedgerTable 
+  renderLedgerTable,
+  updateLedgerFilters
 } from './dashboard.js';
 import { 
   renderResponse, 
@@ -29,6 +30,7 @@ import { renderChart } from './charts.js';
 // Global variables for caching raw ledger rows locally
 let cachedRawDeals = [];
 let cachedRawWOs = [];
+let ledgerPage = 1;
 
 /**
  * Reactive State Dispatch Handler.
@@ -84,6 +86,11 @@ function handleStateChange(state, prop) {
       break;
 
     case 'ledgerTab':
+      ledgerPage = 1;
+      const searchInput = document.getElementById('ledger-search');
+      const filterSelect = document.getElementById('ledger-filter-status');
+      if (searchInput) searchInput.value = '';
+      if (filterSelect) filterSelect.value = 'ALL';
       refreshLedgerDisplay();
       break;
   }
@@ -94,14 +101,22 @@ function handleStateChange(state, prop) {
  */
 function refreshLedgerDisplay() {
   const stateVal = store.get();
+  const searchInput = document.getElementById('ledger-search');
+  const filterSelect = document.getElementById('ledger-filter-status');
+
+  const searchQuery = searchInput ? searchInput.value : '';
+  const statusFilter = filterSelect ? filterSelect.value : 'ALL';
+
   if (stateVal.ledgerTab === 'deals') {
     document.getElementById('btn-tab-deals').classList.add('active');
     document.getElementById('btn-tab-wos').classList.remove('active');
-    renderLedgerTable(cachedRawDeals, 'deals');
+    updateLedgerFilters(cachedRawDeals, 'deals');
+    renderLedgerTable(cachedRawDeals, 'deals', { searchQuery, statusFilter, page: ledgerPage });
   } else {
     document.getElementById('btn-tab-deals').classList.remove('active');
     document.getElementById('btn-tab-wos').classList.add('active');
-    renderLedgerTable(cachedRawWOs, 'workorders');
+    updateLedgerFilters(cachedRawWOs, 'workorders');
+    renderLedgerTable(cachedRawWOs, 'workorders', { searchQuery, statusFilter, page: ledgerPage });
   }
 }
 
@@ -119,11 +134,7 @@ async function executeSync() {
   try {
     await api.syncData();
     
-    // Invalidate cached rows
-    cachedRawDeals = [];
-    cachedRawWOs = [];
-    
-    // Reload dashboard from live data
+    // Reload dashboard & canonical datasets from live data
     await loadDashboard();
     await loadIntegrityStatus();
     
@@ -164,8 +175,6 @@ async function submitQuery(queryText) {
     
     store.setActiveResponse(queryText, data);
     
-    // Update local variables for ledger inspect
-    // In Phase 5 backend returns mock clean lists. Let's sync state variables
     if (data.dataHealth) {
       store.setDataHealth(data.dataHealth);
     }
@@ -212,6 +221,9 @@ async function loadDashboard() {
     const res = await api.getDashboard();
     const data = res.data;
 
+    if (data.deals) cachedRawDeals = data.deals;
+    if (data.workOrders) cachedRawWOs = data.workOrders;
+
     if (data.kpis) {
       store.setKPIs(data.kpis);
     }
@@ -220,6 +232,7 @@ async function loadDashboard() {
     }
     store.setSyncTime(new Date().toLocaleTimeString());
     store.addActivity(`Loaded: ${data.recordCounts?.deals || 0} deals, ${data.recordCounts?.workOrders || 0} work orders`);
+    refreshLedgerDisplay();
   } catch (error) {
     showErrorBanner(`Failed to load dashboard data: ${error.message}`);
     console.error('Dashboard load failed:', error);
@@ -345,6 +358,42 @@ function setupEvents() {
   document.getElementById('btn-tab-wos').addEventListener('click', () => {
     store.setLedgerTab('wos');
   });
+
+  // Ledger Search & Filter
+  const ledgerSearch = document.getElementById('ledger-search');
+  if (ledgerSearch) {
+    ledgerSearch.addEventListener('input', () => {
+      ledgerPage = 1;
+      refreshLedgerDisplay();
+    });
+  }
+
+  const ledgerFilter = document.getElementById('ledger-filter-status');
+  if (ledgerFilter) {
+    ledgerFilter.addEventListener('change', () => {
+      ledgerPage = 1;
+      refreshLedgerDisplay();
+    });
+  }
+
+  // Ledger Pagination
+  const btnPrev = document.getElementById('btn-page-prev');
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => {
+      if (ledgerPage > 1) {
+        ledgerPage--;
+        refreshLedgerDisplay();
+      }
+    });
+  }
+
+  const btnNext = document.getElementById('btn-page-next');
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      ledgerPage++;
+      refreshLedgerDisplay();
+    });
+  }
 
   // Fetch boards list button
   document.getElementById('btn-fetch-boards').addEventListener('click', fetchBoardsDropdowns);

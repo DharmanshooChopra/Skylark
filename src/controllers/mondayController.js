@@ -249,6 +249,8 @@ async function getDashboard(req, res, next) {
           deals:      deals.length,
           workOrders: workOrders.length,
         },
+        deals,
+        workOrders,
       },
     });
   } catch (error) {

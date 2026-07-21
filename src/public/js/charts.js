@@ -16,6 +16,24 @@ export function destroyChart() {
 }
 
 /**
+ * Format axis and tooltip numbers cleanly (Cr / L / M / K).
+ */
+function formatChartValue(val) {
+  if (val === null || val === undefined || isNaN(val)) return '0';
+  const abs = Math.abs(val);
+  if (abs >= 10000000) { // 1 Crore = 10M
+    return `₹${(val / 10000000).toFixed(1)}Cr`;
+  }
+  if (abs >= 100000) { // 1 Lakh = 100K
+    return `₹${(val / 100000).toFixed(1)}L`;
+  }
+  if (abs >= 1000) {
+    return `₹${(val / 1000).toFixed(0)}K`;
+  }
+  return `₹${val}`;
+}
+
+/**
  * Renders or updates Chart.js canvas with dynamic visual configurations.
  * 
  * @param {string} canvasId 
@@ -29,9 +47,9 @@ export function renderChart(canvasId, chartData) {
   destroyChart();
 
   if (!chartData || !chartData.values || chartData.values.length === 0) {
-    const parent = canvas.parentElement;
-    if (parent) {
-      parent.closest('.chart-card').classList.add('hidden');
+    const card = canvas.closest('.chart-card');
+    if (card) {
+      card.classList.add('hidden');
     }
     return;
   }
@@ -47,14 +65,13 @@ export function renderChart(canvasId, chartData) {
   // Custom dark mode theme configurations
   const textSecondary = '#94A3B8';
   const gridBorder = '#1F293D';
-  const accentColor = '#3B82F6';
   
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false // Hide legend to conserve space in dense executive panel
+        display: false
       },
       tooltip: {
         backgroundColor: '#1E293B',
@@ -63,7 +80,13 @@ export function renderChart(canvasId, chartData) {
         titleFont: { family: 'Inter', size: 12, weight: 'bold' },
         bodyFont: { family: 'Inter', size: 12 },
         padding: 10,
-        displayColors: false
+        displayColors: false,
+        callbacks: {
+          label: (context) => {
+            const rawVal = context.raw || 0;
+            return `${context.label}: ₹${Math.round(rawVal).toLocaleString('en-IN')}`;
+          }
+        }
       }
     },
     scales: {
@@ -85,12 +108,7 @@ export function renderChart(canvasId, chartData) {
         ticks: {
           color: textSecondary,
           font: { family: 'Inter', size: 10 },
-          callback: (value) => {
-            if (value >= 1000) {
-              return '$' + (value / 1000) + 'k';
-            }
-            return value;
-          }
+          callback: (value) => formatChartValue(value)
         }
       }
     }
@@ -106,12 +124,16 @@ export function renderChart(canvasId, chartData) {
         backgroundColor: [
           'rgba(59, 130, 246, 0.75)', // Accent Blue
           'rgba(245, 158, 11, 0.75)', // Warning Amber
-          'rgba(239, 68, 68, 0.75)'   // Danger Crimson
+          'rgba(239, 68, 68, 0.75)',  // Danger Crimson
+          'rgba(34, 197, 94, 0.75)',  // Success Green
+          'rgba(168, 85, 247, 0.75)'  // Purple
         ],
         borderColor: [
           '#3B82F6',
           '#F59E0B',
-          '#EF4444'
+          '#EF4444',
+          '#22C55E',
+          '#A855F7'
         ],
         borderWidth: 1,
         borderRadius: 4

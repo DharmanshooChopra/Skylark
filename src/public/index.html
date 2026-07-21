@@ -34,15 +34,20 @@
   <header class="app-header">
     <div class="header-logo">
       <span class="logo-icon">⚡</span>
-      <span class="logo-text">SKYLARK <span class="logo-subtext">// INTEL</span></span>
+      <span class="logo-text">SKYLARK <span class="logo-subtext">// EXECUTIVE TERMINAL</span></span>
     </div>
     
     <div class="header-status">
-      <div id="connection-badge" class="connection-badge offline">
+      <div id="connection-badge" class="connection-badge offline" title="Monday.com API Connection Status">
         <span class="badge-dot"></span>
         <span class="badge-text">DISCONNECTED</span>
       </div>
       
+      <div id="ai-badge" class="connection-badge online" title="AI Provider Pipeline Status">
+        <span class="badge-dot"></span>
+        <span class="badge-text">AI ENGINE ACTIVE</span>
+      </div>
+
       <div id="sync-status" class="sync-status">
         Sync: <span id="sync-time">Never</span>
       </div>
@@ -77,9 +82,19 @@
       <!-- Terminal View -->
       <section id="view-terminal" class="workspace-view">
         
-        <!-- KPI Pulse -->
+        <!-- KPI Pulse Grid (6 Cards) -->
         <div id="kpi-grid" class="kpi-grid">
-          <!-- KPI Cards rendered dynamically (Skeletons shown by default) -->
+          <!-- KPI Cards rendered dynamically -->
+          <div class="kpi-card skeleton">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line tall"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+          <div class="kpi-card skeleton">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line tall"></div>
+            <div class="skeleton-line short"></div>
+          </div>
           <div class="kpi-card skeleton">
             <div class="skeleton-line short"></div>
             <div class="skeleton-line tall"></div>
@@ -112,7 +127,7 @@
               
               <div class="query-input-container">
                 <input type="text" id="query-input" placeholder="Ask about bottlenecks, leakage, or cycle times... (Ctrl+K)" aria-label="Natural Language Query input">
-                <button id="btn-query" class="btn btn-primary">Run</button>
+                <button id="btn-query" class="btn btn-primary">Run Query</button>
               </div>
 
               <div id="suggested-actions" class="suggested-actions">
@@ -224,10 +239,23 @@
       <section id="view-ledger" class="workspace-view hidden">
         <div class="panel-card ledger-panel">
           <div class="ledger-header">
-            <h2 class="panel-title">CANONICAL BUSINESS LEDGER</h2>
-            <div class="ledger-view-tabs">
-              <button id="btn-tab-deals" class="ledger-tab active">Normalized Deals</button>
-              <button id="btn-tab-wos" class="ledger-tab">Normalized Work Orders</button>
+            <div class="ledger-title-group">
+              <h2 class="panel-title">CANONICAL BUSINESS LEDGER</h2>
+              <span id="ledger-record-count" class="ledger-count-badge">0 Records</span>
+            </div>
+            
+            <div class="ledger-controls">
+              <div class="ledger-search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="ledger-search" placeholder="Search name, code, sector..." aria-label="Search Ledger Table">
+              </div>
+              <select id="ledger-filter-status" class="ledger-filter-select" aria-label="Filter by Status">
+                <option value="ALL">All Statuses</option>
+              </select>
+              <div class="ledger-view-tabs">
+                <button id="btn-tab-deals" class="ledger-tab active">Normalized Deals</button>
+                <button id="btn-tab-wos" class="ledger-tab">Normalized Work Orders</button>
+              </div>
             </div>
           </div>
           
@@ -240,6 +268,15 @@
                 <!-- Table rows loaded dynamically -->
               </tbody>
             </table>
+          </div>
+
+          <div id="ledger-pagination" class="ledger-pagination">
+            <span id="ledger-page-info" class="pagination-info">Showing 0 of 0</span>
+            <div class="pagination-buttons">
+              <button id="btn-page-prev" class="btn btn-secondary btn-sm" disabled>&lt; Prev</button>
+              <span id="ledger-page-num" class="page-num">1</span>
+              <button id="btn-page-next" class="btn btn-secondary btn-sm" disabled>Next &gt;</button>
+            </div>
           </div>
         </div>
       </section>
