@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skylark // Executive Intelligence Terminal</title>
+  
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- App JS -->
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Global Error Banner -->
+  <div id="error-banner" class="error-banner hidden" role="alert">
+    <span class="error-banner-message">Connection Offline. Using cached data.</span>
+    <button id="close-error-banner" aria-label="Close Error Banner">&times;</button>
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">SKYLARK <span class="logo-subtext">// INTEL</span></span>
+    </div>
+    
+    <div class="header-status">
+      <div id="connection-badge" class="connection-badge offline">
+        <span class="badge-dot"></span>
+        <span class="badge-text">DISCONNECTED</span>
+      </div>
+      
+      <div id="sync-status" class="sync-status">
+        Sync: <span id="sync-time">Never</span>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <button id="btn-sync" class="btn btn-secondary btn-icon" aria-label="Force Synchronize Data">
+        <span class="icon">↻</span> Sync Now
+      </button>
+      <button id="btn-settings-toggle" class="btn btn-secondary btn-icon" aria-label="Open Settings">
+        <span class="icon">⚙</span> Settings
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+    
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar-nav" aria-label="Main Navigation">
+      <button id="nav-terminal" class="nav-item active" aria-current="page">
+        <span class="nav-icon">📊</span> Terminal
+      </button>
+      <button id="nav-ledger" class="nav-item">
+        <span class="nav-icon">📋</span> Data Ledger
+      </button>
+    </nav>
+
+    <!-- Content Workspace -->
+    <main class="content-workspace">
+      
+      <!-- Terminal View -->
+      <section id="view-terminal" class="workspace-view">
+        
+        <!-- KPI Pulse -->
+        <div id="kpi-grid" class="kpi-grid">
+          <!-- KPI Cards rendered dynamically (Skeletons shown by default) -->
+          <div class="kpi-card skeleton">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line tall"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+          <div class="kpi-card skeleton">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line tall"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+          <div class="kpi-card skeleton">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line tall"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+          <div class="kpi-card skeleton">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line tall"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+
+        <!-- Split Pane: Analytics & Executive Intelligence -->
+        <div class="split-pane">
+          
+          <!-- Left Column: Executive Query Panel -->
+          <div class="pane-column main-stream">
+            <div class="panel-card query-card">
+              <h2 class="panel-title">EXECUTIVE INTEL QUERY</h2>
+              
+              <div class="query-input-container">
+                <input type="text" id="query-input" placeholder="Ask about bottlenecks, leakage, or cycle times... (Ctrl+K)" aria-label="Natural Language Query input">
+                <button id="btn-query" class="btn btn-primary">Run</button>
+              </div>
+
+              <div id="suggested-actions" class="suggested-actions">
+                <!-- Inline suggested action flags will render here -->
+              </div>
+            </div>
+
+            <!-- Executive Response Brief Panel -->
+            <div id="response-panel" class="panel-card response-panel hidden">
+              <div class="response-header">
+                <h2 class="panel-title">AI EXECUTIVE BRIEF</h2>
+                <div id="brief-confidence" class="confidence-badge">92% Confidence</div>
+              </div>
+              
+              <div id="brief-content" class="brief-content markdown-body">
+                <!-- Compiled briefing output is drawn here -->
+              </div>
+
+              <!-- Confidence Details -->
+              <details class="confidence-details">
+                <summary>Confidence & Methodology Ledger</summary>
+                <div class="details-body">
+                  <p><strong>Evidence:</strong> <span id="conf-evidence">N/A</span></p>
+                  <p><strong>Assumptions:</strong> <span id="conf-assumptions">N/A</span></p>
+                  <p><strong>Limitations:</strong> <span id="conf-limitations">N/A</span></p>
+                </div>
+              </details>
+            </div>
+            
+            <!-- Default Welcome/Empty State when no query is active -->
+            <div id="query-empty-state" class="panel-card empty-panel-state">
+              <div class="empty-icon">⚡</div>
+              <h3>Analytical Console Ready</h3>
+              <p>Type a natural language request or select a suggested investigation below to compile a decision brief.</p>
+              <div class="welcome-suggestions">
+                <button class="welcome-sug-btn" data-query="Calculate won deals, backlog value, and revenue leakage">Overview Operations and Pipeline Status</button>
+                <button class="welcome-sug-btn" data-query="Analyze backlog bottleneck delays and delayed deliveries">List Stalled Backlog Bottlenecks</button>
+                <button class="welcome-sug-btn" data-query="What is the average sales-to-operations handoff cycle time?">Audit Handoff Cycle Velocities</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Visual Ledger & Diagnostics -->
+          <div class="pane-column diagnostics-column">
+            
+            <!-- Dynamic Chart Display Card -->
+            <div id="chart-card" class="panel-card chart-card hidden">
+              <h2 class="panel-title">DYNAMICS VISUALIZATION</h2>
+              <div class="chart-container">
+                <canvas id="analytics-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- AI Reasoning Timeline -->
+            <div id="timeline-card" class="panel-card timeline-card hidden">
+              <h2 class="panel-title">EXECUTION REASONING TRACE</h2>
+              <div id="timeline-steps" class="timeline-steps">
+                <!-- Dynamic timeline execution trace -->
+              </div>
+            </div>
+
+            <!-- Data Quality Audit Monitor -->
+            <div class="panel-card health-card">
+              <h2 class="panel-title">DATA HEALTH MONITOR</h2>
+              <div class="health-summary">
+                <div id="health-score" class="health-score-value">--</div>
+                <div class="health-score-label">DATA HEALTH INDEX</div>
+              </div>
+              
+              <div class="health-metrics-grid">
+                <div class="health-metric">
+                  <span class="health-metric-label">Total Records</span>
+                  <span id="health-total" class="health-metric-val">--</span>
+                </div>
+                <div class="health-metric">
+                  <span class="health-metric-label">Valid Rows</span>
+                  <span id="health-valid" class="health-metric-val">--</span>
+                </div>
+                <div class="health-metric">
+                  <span class="health-metric-label">Discarded / Headers</span>
+                  <span id="health-removed" class="health-metric-val">--</span>
+                </div>
+                <div class="health-metric">
+                  <span class="health-metric-label">Imputed Values</span>
+                  <span id="health-imputed" class="health-metric-val">--</span>
+                </div>
+              </div>
+              
+              <div id="health-warnings" class="health-warnings hidden">
+                <div class="warnings-title">System Anomalies & Logs</div>
+                <ul id="warnings-list" class="warnings-list">
+                  <!-- Warning lines from cleaner go here -->
+                </ul>
+              </div>
+            </div>
+
+            <!-- Activity Logs -->
+            <div class="panel-card activity-card">
+              <h2 class="panel-title">SYSTEM ACTIVITIES LOG</h2>
+              <ul id="activity-log" class="activity-log">
+                <!-- Real-time activity entries -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data Ledger View -->
+      <section id="view-ledger" class="workspace-view hidden">
+        <div class="panel-card ledger-panel">
+          <div class="ledger-header">
+            <h2 class="panel-title">CANONICAL BUSINESS LEDGER</h2>
+            <div class="ledger-view-tabs">
+              <button id="btn-tab-deals" class="ledger-tab active">Normalized Deals</button>
+              <button id="btn-tab-wos" class="ledger-tab">Normalized Work Orders</button>
+            </div>
+          </div>
+          
+          <div class="ledger-table-container">
+            <table id="ledger-table" class="ledger-table">
+              <thead>
+                <!-- Table headers loaded dynamically -->
+              </thead>
+              <tbody>
+                <!-- Table rows loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Settings Slide-out / Overlaid Panel -->
+  <div id="settings-panel" class="settings-panel hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-header">
+      <h2 id="settings-title">INTEGRATION CONFIGURATION</h2>
+      <button id="btn-settings-close" class="btn-close" aria-label="Close Settings">&times;</button>
+    </div>
+    
+    <div class="settings-body">
+      <form id="settings-form">
+        <h3 class="settings-section-title">Credentials</h3>
+        
+        <div class="form-group">
+          <label for="input-monday-token">Monday.com Personal API Token</label>
+          <input type="password" id="input-monday-token" placeholder="Paste personal API token..." autocomplete="off">
+          <span class="help-text">Stores in secure memory. Leave empty to fallback to server environment value.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="select-llm-provider">LLM Provider</label>
+          <select id="select-llm-provider">
+            <option value="gemini">Google Gemini Developer API</option>
+            <option value="openai">OpenAI Compatible Endpoint</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="input-llm-key">AI Engine API Key</label>
+          <input type="password" id="input-llm-key" placeholder="Paste Gemini or OpenAI key..." autocomplete="off">
+        </div>
+
+        <h3 class="settings-section-title">Board Selection</h3>
+        
+        <div class="form-group">
+          <button type="button" id="btn-fetch-boards" class="btn btn-secondary btn-full">
+            Fetch Mapped Boards List
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="select-deals-board">Sales Deals Board</label>
+          <select id="select-deals-board">
+            <option value="">-- Fetch boards list first --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="select-wos-board">Operations Work Orders Board</label>
+          <select id="select-wos-board">
+            <option value="">-- Fetch boards list first --</option>
+          </select>
+        </div>
+
+        <h3 class="settings-section-title">Field Columns Mapping</h3>
+        <p class="section-desc">Map core fields from Monday columns to internal canonical types. (Auto-detection is used if left blank).</p>
+        
+        <div class="mapping-grid">
+          <div>
+            <span class="mapping-board-title">Deals Mappings</span>
+            <div class="form-group sm">
+              <label for="map-deal-name">Deal Name Column ID</label>
+              <input type="text" id="map-deal-name" placeholder="E.g. name / text_1">
+            </div>
+            <div class="form-group sm">
+              <label for="map-deal-value">Deal Value Column ID</label>
+              <input type="text" id="map-deal-value" placeholder="E.g. numbers">
+            </div>
+            <div class="form-group sm">
+              <label for="map-deal-status">Deal Status Column ID</label>
+              <input type="text" id="map-deal-status" placeholder="E.g. status">
+            </div>
+          </div>
+          
+          <div>
+            <span class="mapping-board-title">Work Orders Mappings</span>
+            <div class="form-group sm">
+              <label for="map-wo-name">Deal Name Column ID</label>
+              <input type="text" id="map-wo-name" placeholder="E.g. text">
+            </div>
+            <div class="form-group sm">
+              <label for="map-wo-serial">Serial # Column ID</label>
+              <input type="text" id="map-wo-serial" placeholder="E.g. serial">
+            </div>
+            <div class="form-group sm">
+              <label for="map-wo-status">Execution Status Column ID</label>
+              <input type="text" id="map-wo-status" placeholder="E.g. color">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-save-settings" class="btn btn-primary btn-full">
+          Save Configuration & Sync
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings overlay backdrop -->
+  <div id="settings-backdrop" class="settings-backdrop hidden"></div>
+
+</body>
+</html>
