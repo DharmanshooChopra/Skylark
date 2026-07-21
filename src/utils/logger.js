@@ -28,8 +28,15 @@ const logger = {
     console.error(formatMessage(levels.ERROR, context, message, { error: errMsg }));
   },
   debug: (context, message, meta) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(formatMessage(levels.DEBUG, context, message, meta));
+    try {
+      const { isDev } = require('../config').getActiveConfig();
+      if (isDev) {
+        console.log(formatMessage(levels.DEBUG, context, message, meta));
+      }
+    } catch {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(formatMessage(levels.DEBUG, context, message, meta));
+      }
     }
   }
 };

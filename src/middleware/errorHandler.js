@@ -1,11 +1,12 @@
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errors');
+const { getActiveConfig } = require('../config');
 
 /**
  * Express global error handling middleware.
  */
 function errorHandler(err, req, res, next) {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = getActiveConfig().nodeEnv === 'production';
   
   // Default values for unhandled native errors
   let statusCode = err.statusCode || 500;
