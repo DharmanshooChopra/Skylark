@@ -1,13 +1,16 @@
 const NodeCache = require('node-cache');
+const { getActiveConfig } = require('../config');
 
-// Default cache TTL of 10 minutes (600 seconds), check period of 60 seconds
-const cache = new NodeCache({ stdTTL: 600, checkperiod: 60 });
+// Respect CACHE_TTL from environment (defaults to 300s / 5 minutes)
+const ttl = getActiveConfig().cacheTtl || 300;
+const cache = new NodeCache({ stdTTL: ttl, checkperiod: 60 });
 
 const cacheKeys = {
   RAW_DEALS: 'raw_deals_data',
   RAW_WORK_ORDERS: 'raw_work_orders_data',
   CLEANED_DEALS: 'cleaned_deals_data',
   CLEANED_WORK_ORDERS: 'cleaned_work_orders_data',
+  ANALYTICS_RESULTS: 'analytics_results',
   BOARD_LIST: 'monday_board_list',
   BOARD_METADATA_PREFIX: 'board_metadata_'
 };

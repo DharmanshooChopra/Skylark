@@ -1,5 +1,6 @@
 /**
  * API Service for communication with the Express Backend endpoints.
+ * Uses a relative base path so it works on any port the server runs on.
  */
 
 const BASE_URL = '/api';
