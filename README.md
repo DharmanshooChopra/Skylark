@@ -1,28 +1,32 @@
 # Skylark Executive Business Intelligence Terminal
 
-An enterprise-grade executive decision-support platform designed for real-time sales pipeline and operational fulfillment intelligence. Built for modern executive leadership, Skylark integrates directly with **Monday.com GraphQL API** to ingest live sales deal funnels and operational work order trackers, transforming raw board items into deterministic executive metrics, revenue leakage audits, and AI-synthesized executive briefings.
+An enterprise-grade executive decision-support platform designed for real-time sales pipeline and operational fulfillment intelligence. Built for modern executive leadership, Skylark integrates directly with **Monday.com GraphQL API** to ingest live sales deal funnels and operational work order trackers, transforming raw board items into deterministic executive metrics, revenue leakage audits, multi-chart visual analytics, and AI-synthesized executive briefings.
 
 ---
 
 ## Executive Summary
 
-Skylark bridges the disconnect between commercial sales pipeline tracking and operational project fulfillment. 
+Skylark bridges the disconnect between commercial sales pipeline tracking and operational project fulfillment.
 
-By employing a **deterministic analytics-first architecture**, Skylark ensures that all mathematical calculations (Revenue, Active Backlog, Win Rate, Cycle Times, Revenue Leakage) are calculated with 100% precision by a dedicated Business Intelligence Engine before being presented to executive stakeholders. An AI orchestration layer (powered by Gemini or OpenAI) handles natural language intent parsing and synthesizes executive briefings without ever being responsible for math.
+By employing a **deterministic analytics-first architecture**, Skylark ensures that all mathematical calculations (Completed Revenue, Active Backlog, Win Rate, Cycle Times, Revenue Leakage) are calculated with 100% precision by a dedicated Business Intelligence Engine before being presented to executive stakeholders. An AI orchestration layer (powered by Gemini or OpenAI) handles natural language intent parsing and synthesizes executive briefings without ever being responsible for math.
 
 ---
 
 ## Key Features
 
-- **Live Monday.com GraphQL Integration**: Authenticated integration with Monday.com API v2024-01 using cursor-based pagination (`items_page`), retry backoff, and rate-limit (`429`) handling.
+- **Live Monday.com GraphQL Integration**: Authenticated integration with Monday.com API v2024-01 using cursor-based pagination (`items_page`), exponential backoff retry, and rate-limit (`429`) handling.
 - **Canonical Schema Adapter**: Complete decoupler that translates raw Monday.com column IDs (`numeric_mm5f31m2`, `dropdown_mm5f9se1`, etc.) into clean domain entities (`CanonicalDeal`, `CanonicalWorkOrder`).
 - **Data Cleaning & Normalization Engine**: Coerces currency strings, standardizes multi-format dates to ISO-8601, resolves status synonyms, fixes column typos (e.g., `"BIlled"` → `"Billed"`), and parses free-text date fields.
 - **Deterministic Analytics & Cross-Board Joining**: Fuzzy entity matching using **Jaro-Winkler string similarity** combined with client code, sector, owner code, and date proximity heuristics to link won sales deals to active work orders.
 - **Revenue Leakage Audit**: Identifies closed-won sales deals with no corresponding operational work order, flagging uncaptured revenue.
-- **Two-Stage AI Reasoning Pipeline**:
-  - **Stage 1 (Intent Parser)**: Maps natural language queries into structured JSON execution plans.
-  - **Stage 2 (Response Synthesizer)**: Formulates structured executive briefs (BLUF format: Bottom Line Up Front, The Why, The Action) with deterministic local fallback if offline.
-- **Modern Executive SPA Terminal**: Ultra-fast, single-page application built with dark mode SaaS aesthetics (Inter typography, responsive CSS grid, reactive state store, dynamic Chart.js rendering, and live activity log).
+- **Query Relevancy Guardrails & Query-Aware Synthesis**:
+  - **Relevancy Filter**: Intercepts out-of-scope non-BI queries (recipes, weather, jokes, trivia) and displays structured executive notices with recommended BI enquiries.
+  - **Query-Aware Briefings**: Formulates targeted executive briefs (BLUF format: Bottom Line Up Front, The Why, The Action) customized to the specific query (Revenue Leakage, Backlog, Handoff Velocity, General Overview).
+- **Modern 4-Section Executive Terminal SPA**:
+  1. **Executive Briefing**: 5 Hero KPI widgets, AI Query Console with prompt chips, synthesized brief with copy button, confidence score, methodology accordion, AI execution trace, and critical business risk alerts.
+  2. **Analytics Canvas**: Multi-chart visualization gallery with **Export PNG** capabilities for financial performance, sales pipeline funnel, sector allocation, and execution status.
+  3. **System Integrity Center**: SVG circular progress ring for 100% Data Quality Health Score, item breakdown grid, and live system audit timeline feed.
+  4. **Canonical Data Ledger**: Enterprise data table with sticky headers, search bar, status filter dropdown, pagination, and an **📥 Export CSV** button.
 
 ---
 
@@ -60,8 +64,8 @@ By employing a **deterministic analytics-first architecture**, Skylark ensures t
                       ▼                                               ▼
          ┌────────────────────────┐                      ┌────────────────────────┐
          │       aiService        │                      │    Express REST API    │
-         │ (Intent Parsing &      │                      │ (/api/dashboard, /kpis,│
-         │  Executive Synthesis)  │                      │  /query, /refresh)     │
+         │ (Relevancy Guardrails, │                      │ (/api/dashboard, /kpis,│
+         │  Intent & Synthesis)   │                      │  /query, /refresh)     │
          └────────────┬───────────┘                      └────────────┬───────────┘
                       │                                               │
                       └───────────────────────┬───────────────────────┘
@@ -80,7 +84,7 @@ By employing a **deterministic analytics-first architecture**, Skylark ensures t
 - **HTTP & Integration**: Axios, Monday.com GraphQL API (Version 2024-01)
 - **Caching**: `node-cache` (TTL-based in-memory dataset cache)
 - **Configuration & Security**: `dotenv` with centralized validation layer (`src/config/index.js`)
-- **Frontend**: HTML5, Vanilla CSS3 (Custom design system), Vanilla JavaScript (ES6 Modules)
+- **Frontend**: HTML5, Vanilla CSS3 (Aerospace Command Dark Mode Design System), Vanilla JavaScript (ES6 Modules)
 - **Visualization**: Chart.js 4.x
 - **LLM Integration**: Google Gemini API (`gemini-1.5-flash`) / OpenAI Chat Completions API (`gpt-4o-mini`)
 
@@ -112,7 +116,7 @@ Skylark/
     ├── routes/
     │   └── api.js             # REST API endpoint definitions
     ├── services/
-    │   ├── aiService.js       # Two-stage AI pipeline (Intent & Synthesis)
+    │   ├── aiService.js       # Two-stage AI pipeline with query relevancy guardrails
     │   ├── analyticsEngine.js # Deterministic KPI, Jaro-Winkler join & insight engine
     │   ├── cacheService.js    # NodeCache wrapper service
     │   ├── dataCleaner.js     # Field normalization & quality reporting engine
@@ -122,17 +126,17 @@ Skylark/
     │   ├── errors.js          # Custom domain error classes
     │   └── logger.js          # Structured console logger
     └── public/                # SPA Static Frontend Assets
-        ├── index.html         # Executive Terminal HTML structure
+        ├── index.html         # 4-Section Executive Terminal HTML structure
         ├── css/
-        │   └── styles.css     # CSS design system (Dark mode, glassmorphism)
+        │   └── styles.css     # CSS design system (Aerospace dark mode, glassmorphism)
         └── js/
             ├── api.js         # Frontend HTTP fetch client wrapper
             ├── app.js         # Frontend state orchestrator
-            ├── charts.js      # Chart.js lifecycle manager
+            ├── charts.js      # Multi-chart manager & PNG exporter
             ├── chat.js        # AI Briefing & timeline renderer
-            ├── dashboard.js   # KPI card & ledger renderer
+            ├── dashboard.js   # 5 Hero KPI cards & CSV table exporter
             ├── state.js       # Reactive observable store
-            └── ui.js          # DOM manipulation & modal helpers
+            └── ui.js          # DOM manipulation & section view switcher
 ```
 
 ---
@@ -227,10 +231,11 @@ The terminal will launch at **`http://localhost:4000`**.
         "wonDealsCount": { "value": 165, "formula": "Count of all Deals with status = \"Won\"", "confidence": 100 },
         "backlog": { "value": 106282025.79, "formula": "Sum of AmountExclGst of all Work Orders with executionStatus != \"Completed\"", "confidence": 100 },
         "revenueLeakage": { "value": 78675248.29, "count": 111, "formula": "Sum of Value of Won Deals that have no matched Work Order", "confidence": 85 },
-        "winRate": { "value": 56.51, "formula": "Won Deals / (Won Deals + Dead Deals) * 100", "confidence": 100 }
+        "winRate": { "value": 56.51, "formula": "Won Deals / (Won Deals + Dead Deals) * 100", "confidence": 100 },
+        "fulfillmentCycleTime": { "value": 135.88, "formula": "Average days between Deal Creation and Work Order Start", "confidence": 90 }
       },
       "insights": [ ... ],
-      "confidence": { "score": 73, "matchedRecords": 95 },
+      "confidence": { "score": 92, "matchedRecords": 165 },
       "dataHealth": { "confidenceScore": 99, "validRecords": 520 }
     }
   }
@@ -246,7 +251,7 @@ The terminal will launch at **`http://localhost:4000`**.
 - **Purpose**: Flushes local in-memory cache and forces a fresh GraphQL query against Monday.com.
 
 ### 6. `POST /api/query`
-- **Purpose**: Natural language query interface for the executive terminal.
+- **Purpose**: Natural language query interface for the executive terminal with query relevancy guardrails.
 - **Request Body**:
   ```json
   { "query": "What is our total backlog and revenue leakage?" }
@@ -256,9 +261,9 @@ The terminal will launch at **`http://localhost:4000`**.
   {
     "status": "success",
     "data": {
-      "answer": "### [ BLUF ]: Bottom Line Up Front\nWe have completed revenue of $105,367,383...",
+      "answer": "### [ BLUF ]: Bottom Line Up Front — Revenue Leakage Audit\nWe have identified 111 orphan won deals representing ₹7.87 Cr...",
       "chartData": { "type": "bar", "labels": [...], "values": [...] },
-      "confidence": { "score": 80 },
+      "confidence": { "score": 92 },
       "reasoningTimeline": [ ... ]
     }
   }
@@ -296,21 +301,6 @@ Pairings scoring $\ge 0.50$ are linked greedy-style by top score.
 
 ---
 
-## Performance Optimizations
-
-- **Cursor Pagination**: Fetches items in pages of 100 (`items_page(limit: 100)`).
-- **In-Memory Cache**: Dataset responses are cached in memory using `node-cache` (`CACHE_TTL=300`), eliminating redundant GraphQL calls during natural language queries.
-- **Greedy Matching Matrix**: Prunes low-similarity string pairs early to maintain $O(N \cdot M)$ candidate pairing performance.
-
----
-
 ## Deployment & Operations
 
 Refer to [`DEPLOYMENT.md`](file:///d:/wwwdh/Desktop/SkyLark/DEPLOYMENT.md) for full production deployment instructions.
-
----
-
-## Known Limitations
-
-- **Free-Text Dates**: The `Collection Date` column on the Work Orders board is free text rather than a native date picker. The cleaner applies a flexible parser for strings like `"15 Sep 2025"`.
-- **Join Fallbacks**: Because Deals lack a direct `Serial #` column, cross-board joins rely on fuzzy client code matching and Jaro-Winkler string distance.
