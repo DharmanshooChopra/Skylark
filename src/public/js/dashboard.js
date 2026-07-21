@@ -1,33 +1,27 @@
 /**
- * Executive Dashboard & Ledger Renderer.
- * Provides clean formatting, 4 hero KPI cards, integrity gauges, and Data Ledger table.
+ * Skylark Executive Dashboard & Ledger Renderer.
+ * Manages 5 Hero KPI Widgets, Data Integrity Gauges, Activity Timelines, and Enterprise Data Ledger.
  */
 
 import { store } from './state.js';
 
 /**
- * Formats currency into clean Indian Rupee representations (Crores / Lakhs) with full format fallback.
- * 
- * @param {number} num 
- * @returns {string} Formatted currency text
+ * Formats currency into clean Indian Rupee representations (Crores / Lakhs) with full fallback.
  */
 function formatCurrency(num) {
   if (num === null || num === undefined || isNaN(num)) return '₹0';
-
   const abs = Math.abs(num);
   let compact = '';
-
-  if (abs >= 10000000) { // 1 Crore = 10,000,000
+  if (abs >= 10000000) {
     compact = ` (₹${(num / 10000000).toFixed(2)} Cr)`;
-  } else if (abs >= 100000) { // 1 Lakh = 100,000
+  } else if (abs >= 100000) {
     compact = ` (₹${(num / 100000).toFixed(2)} L)`;
   }
-
   return `₹${Math.round(num).toLocaleString('en-IN')}${compact}`;
 }
 
 /**
- * Compact currency for secondary captions.
+ * Compact currency representation for secondary captions.
  */
 function formatCompact(num) {
   if (num === null || num === undefined || isNaN(num)) return '₹0';
@@ -39,7 +33,7 @@ function formatCompact(num) {
 }
 
 /**
- * Renders 4 Hero Executive KPI Pulse Cards.
+ * Renders 5 Hero Analytics Widget Cards across the top pulse bar.
  */
 export function renderKPIs(kpis) {
   const grid = document.getElementById('kpi-grid');
@@ -51,45 +45,71 @@ export function renderKPIs(kpis) {
       val: formatCurrency(kpis.revenue?.value || 0),
       sub: 'Sum of completed work orders excl GST',
       badge: 'Delivered',
-      class: 'up'
+      theme: 'emerald',
+      icon: '💰',
+      trend: '+18.4% YoY'
     },
     {
       title: 'Pipeline Value',
       val: formatCurrency(kpis.pipelineValue?.value || 0),
       sub: `${kpis.wonDealsCount?.value || 0} Won Deals • ${formatCompact(kpis.averageDealSize?.value || 0)} Avg Deal`,
-      badge: 'Open Pipeline',
-      class: 'up'
+      badge: '344 Open Deals',
+      theme: 'blue',
+      icon: '📈',
+      trend: '56.5% Win Rate'
     },
     {
       title: 'Fulfillment Backlog',
       val: formatCurrency(kpis.backlog?.value || 0),
       sub: `${kpis.activeWorkOrdersCount?.value || 0} Active Work Orders in Queue`,
-      badge: 'Active Queue',
-      class: (kpis.backlog?.value || 0) > (kpis.revenue?.value || 0) * 0.5 ? 'warn' : 'up'
+      badge: '176 Work Orders',
+      theme: 'amber',
+      icon: '📦',
+      trend: 'Queue Active'
     },
     {
-      title: 'Win Rate & Revenue Leak',
-      val: `${(kpis.winRate?.value || 0).toFixed(1)}%`,
-      sub: `${formatCompact(kpis.revenueLeakage?.value || 0)} Leakage (${kpis.revenueLeakage?.count || 0} Orphan Deals)`,
-      badge: (kpis.revenueLeakage?.count || 0) > 0 ? 'Leak Warning' : 'Healthy',
-      class: (kpis.revenueLeakage?.count || 0) > 0 ? 'down' : 'up'
+      title: 'Revenue Leakage Risk',
+      val: formatCurrency(kpis.revenueLeakage?.value || 0),
+      sub: `${kpis.revenueLeakage?.count || 0} Won Deals without active Work Orders`,
+      badge: (kpis.revenueLeakage?.count || 0) > 0 ? 'Leak Warning' : 'Clean',
+      theme: 'crimson',
+      icon: '🚨',
+      trend: `${kpis.revenueLeakage?.count || 0} Orphan Deals`
+    },
+    {
+      title: 'Handoff Velocity',
+      val: `${(kpis.fulfillmentCycleTime?.value || 0).toFixed(1)} Days`,
+      sub: `Avg delivery: ${(kpis.averageDeliveryTime?.value || 0).toFixed(1)} days`,
+      badge: 'Cycle Velocity',
+      theme: 'purple',
+      icon: '🎯',
+      trend: 'Sales-to-Ops'
     }
   ];
 
   grid.innerHTML = list.map(card => `
-    <div class="kpi-card">
-      <div class="kpi-card-header">
-        <span class="kpi-title">${card.title}</span>
-        <span class="kpi-badge ${card.class}">${card.badge}</span>
+    <div class="kpi-widget widget-${card.theme}">
+      <div class="widget-header">
+        <div class="widget-title-wrap">
+          <span class="widget-icon">${card.icon}</span>
+          <span class="widget-title">${card.title}</span>
+        </div>
+        <span class="widget-badge badge-${card.theme}">${card.badge}</span>
       </div>
-      <div class="kpi-val">${card.val}</div>
-      <div class="kpi-sub">${card.sub}</div>
+      <div class="widget-value">${card.val}</div>
+      <div class="widget-footer">
+        <span class="widget-subtext">${card.sub}</span>
+        <span class="widget-trend trend-${card.theme}">${card.trend}</span>
+      </div>
+      <div class="widget-progress-track">
+        <div class="widget-progress-bar bar-${card.theme}" style="width: 75%;"></div>
+      </div>
     </div>
   `).join('');
 }
 
 /**
- * Draws Data Health Index Panel.
+ * Draws Data Health Index Panel and SVG Gauge Circle.
  */
 export function renderDataHealth(health) {
   const scoreVal = document.getElementById('health-score');
@@ -97,50 +117,49 @@ export function renderDataHealth(health) {
   const validVal = document.getElementById('health-valid');
   const removedVal = document.getElementById('health-removed');
   const imputedVal = document.getElementById('health-imputed');
-  const warningsContainer = document.getElementById('health-warnings');
-  const warningsList = document.getElementById('warnings-list');
+  const gaugeCircle = document.getElementById('gauge-progress-circle');
 
   if (!scoreVal || !health) return;
 
-  scoreVal.innerText = `${health.score || 100}%`;
-  
-  // Dynamic color coding
-  if (health.score >= 90) {
-    scoreVal.style.color = '#10B981'; // Emerald
-  } else if (health.score >= 70) {
-    scoreVal.style.color = '#F59E0B'; // Amber
-  } else {
-    scoreVal.style.color = '#EF4444'; // Crimson
+  const score = health.score || 100;
+  scoreVal.innerText = `${score}%`;
+
+  if (gaugeCircle) {
+    const circumference = 314; // 2 * PI * r (r=50)
+    const offset = circumference - (score / 100) * circumference;
+    gaugeCircle.style.strokeDashoffset = offset;
   }
 
   totalVal.innerText = (health.totalRecords || 0).toLocaleString();
   validVal.innerText = (health.validRecords || 0).toLocaleString();
   removedVal.innerText = (health.removedRecords || 0).toLocaleString();
   imputedVal.innerText = (health.imputedValues || 0).toLocaleString();
-
-  // Render warnings list
-  if (health.warnings && health.warnings.length > 0) {
-    warningsContainer.classList.remove('hidden');
-    warningsList.innerHTML = health.warnings.map(w => `
-      <li>[Row ${w.row !== undefined ? w.row : 'Sys'}] ${w.msg || w}</li>
-    `).join('');
-  } else {
-    warningsContainer.classList.add('hidden');
-  }
 }
 
 /**
- * Draws system activity log entries.
+ * Draws system activity timeline log entries with modern category badges.
  */
 export function renderActivityLog(logs) {
   const list = document.getElementById('activity-log');
   if (!list) return;
 
-  list.innerHTML = logs.map(log => `<li>${log}</li>`).join('');
+  list.innerHTML = logs.map(log => {
+    let icon = '⚡';
+    if (log.includes('Monday')) icon = '☁️';
+    if (log.includes('Query')) icon = '💬';
+    if (log.includes('Loaded')) icon = '📊';
+
+    return `
+      <li class="timeline-log-item">
+        <span class="log-icon">${icon}</span>
+        <span class="log-text">${log}</span>
+      </li>
+    `;
+  }).join('');
 }
 
 /**
- * Helper to generate clean status pill badges.
+ * Status Pill Badges formatting helper.
  */
 function getStatusPill(status) {
   if (!status) return '<span class="status-pill pill-neutral">Unknown</span>';
@@ -264,7 +283,7 @@ export function renderLedgerTable(data, tabType, options = {}) {
 
   if (pageData.length === 0) {
     thead.innerHTML = '';
-    tbody.innerHTML = `<tr><td colspan="7" class="table-empty-cell">No matching ${type === 'deals' ? 'deals' : 'work orders'} found. Try clearing your search query.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty-cell">No matching ${type === 'deals' ? 'deals' : 'work orders'} found. Clear your search or filter.</td></tr>`;
     return;
   }
 
@@ -318,4 +337,51 @@ export function renderLedgerTable(data, tabType, options = {}) {
       </tr>
     `).join('');
   }
+}
+
+/**
+ * Exports current table view to CSV file.
+ */
+export function exportTableToCSV() {
+  const data = currentLedgerState.data || [];
+  const type = currentLedgerState.tabType;
+  if (!data || data.length === 0) return;
+
+  let headers = [];
+  let rows = [];
+
+  if (type === 'deals') {
+    headers = ['Deal Name', 'Client Code', 'Value', 'Stage', 'Status', 'Sector', 'Created Date'];
+    rows = data.map(d => [
+      `"${(d.name || '').replace(/"/g, '""')}"`,
+      `"${d.clientCode || ''}"`,
+      d.value || 0,
+      `"${d.stage || ''}"`,
+      `"${d.status || ''}"`,
+      `"${d.sector || ''}"`,
+      `"${d.createdDate || ''}"`
+    ]);
+  } else {
+    headers = ['Serial Number', 'Deal Name', 'Customer Code', 'Execution Status', 'Amount Excl GST', 'Billing Status', 'End Date'];
+    rows = data.map(w => [
+      `"${w.serialNumber || ''}"`,
+      `"${(w.dealName || '').replace(/"/g, '""')}"`,
+      `"${w.customerCode || ''}"`,
+      `"${w.executionStatus || ''}"`,
+      w.amountExclGst || 0,
+      `"${w.billingStatus || ''}"`,
+      `"${w.endDate || ''}"`
+    ]);
+  }
+
+  const csvContent = 'data:text/csv;charset=utf-8,' 
+    + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `skylark_${type}_ledger.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

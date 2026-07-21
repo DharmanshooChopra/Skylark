@@ -1,6 +1,6 @@
 /**
- * Application Orchestrator.
- * Connects API layers, state events, UI drawer controls, and renderers.
+ * Skylark Application Orchestrator.
+ * Handles state transitions, tab navigation, query submissions, and rendering dispatch.
  */
 
 import { api } from './api.js';
@@ -18,16 +18,21 @@ import {
   renderDataHealth, 
   renderActivityLog, 
   renderLedgerTable,
-  updateLedgerFilters
+  updateLedgerFilters,
+  exportTableToCSV
 } from './dashboard.js';
 import { 
   renderResponse, 
   renderReasoningTimeline, 
-  renderSuggestedActions 
+  renderSuggestedActions,
+  copyBriefToClipboard
 } from './chat.js';
-import { renderChart } from './charts.js';
+import { 
+  renderChart, 
+  renderAnalyticsCanvas, 
+  exportChartAsPNG 
+} from './charts.js';
 
-// Global variables for caching raw ledger rows locally
 let cachedRawDeals = [];
 let cachedRawWOs = [];
 let ledgerPage = 1;
@@ -39,23 +44,25 @@ function handleStateChange(state, prop) {
   switch (prop) {
     case 'connectionStatus':
       const badge = document.getElementById('connection-badge');
-      const text = badge.querySelector('.badge-text');
+      const text = badge.querySelector('.pill-text');
       if (state.connectionStatus === 'connected') {
-        badge.className = 'connection-badge online';
-        text.innerText = 'ONLINE';
+        badge.className = 'status-pill pill-online';
+        text.innerText = 'MONDAY LIVE';
       } else {
-        badge.className = 'connection-badge offline';
+        badge.className = 'status-pill pill-danger';
         text.innerText = 'OFFLINE';
       }
       break;
 
     case 'syncTime':
-      document.getElementById('sync-time').innerText = state.syncTime;
+      const syncEl = document.getElementById('sync-time');
+      if (syncEl) syncEl.innerText = state.syncTime;
       break;
 
     case 'kpis':
       if (state.kpis) {
         renderKPIs(state.kpis);
+        renderAnalyticsCanvas(cachedRawDeals, cachedRawWOs, state.kpis);
       }
       break;
 
@@ -71,11 +78,10 @@ function handleStateChange(state, prop) {
         renderReasoningTimeline(state.activeResponse.reasoningTimeline);
         renderChart('analytics-chart', state.activeResponse.chartData);
         
-        // Suggest follow-up actions dynamically based on intent
         const followUps = [
-          { label: 'Audit Backlog Stalls', query: 'List Stall Bottleneck details and cycle times' },
-          { label: 'Show Leakage Exception Log', query: 'Filter won deals with missing work orders' },
-          { label: 'Show Delayed Deliveries', query: 'Identify active work orders past end date target' }
+          { label: '📊 Revenue & Leakage Overview', query: 'Calculate won deals, backlog value, and revenue leakage' },
+          { label: '🚨 Stalled Backlog Audit', query: 'List Stall Bottleneck details and cycle times' },
+          { label: '⏱ Handoff Velocity Audit', query: 'What is the average sales-to-operations handoff cycle time?' }
         ];
         renderSuggestedActions(followUps);
       }
@@ -108,13 +114,17 @@ function refreshLedgerDisplay() {
   const statusFilter = filterSelect ? filterSelect.value : 'ALL';
 
   if (stateVal.ledgerTab === 'deals') {
-    document.getElementById('btn-tab-deals').classList.add('active');
-    document.getElementById('btn-tab-wos').classList.remove('active');
+    const bDeals = document.getElementById('btn-tab-deals');
+    const bWos = document.getElementById('btn-tab-wos');
+    if (bDeals) bDeals.classList.add('active');
+    if (bWos) bWos.classList.remove('active');
     updateLedgerFilters(cachedRawDeals, 'deals');
     renderLedgerTable(cachedRawDeals, 'deals', { searchQuery, statusFilter, page: ledgerPage });
   } else {
-    document.getElementById('btn-tab-deals').classList.remove('active');
-    document.getElementById('btn-tab-wos').classList.add('active');
+    const bDeals = document.getElementById('btn-tab-deals');
+    const bWos = document.getElementById('btn-tab-wos');
+    if (bDeals) bDeals.classList.remove('active');
+    if (bWos) bWos.classList.add('active');
     updateLedgerFilters(cachedRawWOs, 'workorders');
     renderLedgerTable(cachedRawWOs, 'workorders', { searchQuery, statusFilter, page: ledgerPage });
   }
@@ -125,27 +135,29 @@ function refreshLedgerDisplay() {
  */
 async function executeSync() {
   const syncBtn = document.getElementById('btn-sync');
-  syncBtn.disabled = true;
-  syncBtn.classList.add('skeleton');
+  if (syncBtn) {
+    syncBtn.disabled = true;
+    syncBtn.classList.add('skeleton');
+  }
   renderKpiSkeletons();
   
   store.addActivity('Initiating live Monday.com dataset sync...');
   
   try {
     await api.syncData();
-    
-    // Reload dashboard & canonical datasets from live data
     await loadDashboard();
     await loadIntegrityStatus();
     
     store.setSyncTime(new Date().toLocaleTimeString());
-    showToast('Live Monday.com data synchronized.', 'success');
+    showToast('Live Monday.com datasets synchronized.', 'success');
   } catch (error) {
     showToast(error.message, 'danger');
     console.error('Synchronization failed:', error);
   } finally {
-    syncBtn.disabled = false;
-    syncBtn.classList.remove('skeleton');
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.classList.remove('skeleton');
+    }
   }
 }
 
@@ -158,15 +170,14 @@ async function submitQuery(queryText) {
   const btn = document.getElementById('btn-query');
   const input = document.getElementById('query-input');
   
-  btn.disabled = true;
-  input.disabled = true;
+  if (btn) btn.disabled = true;
+  if (input) input.disabled = true;
   store.addActivity(`Running Query: "${queryText}"`);
 
-  // Render reasoning timeline skeleton/loading state
   renderReasoningTimeline([
-    { step: 'Understanding Request', status: 'pending', details: 'Analyzing semantic query context...' },
+    { step: 'Understanding Query', status: 'pending', details: 'Parsing intent & filtering rules...' },
     { step: 'Planning Analysis', status: 'pending', details: 'Formulating metric logic checks...' },
-    { step: 'Fetching Monday Data', status: 'pending', details: 'Reading tables...' }
+    { step: 'Fetching Monday Data', status: 'pending', details: 'Reading canonical tables...' }
   ]);
 
   try {
@@ -182,11 +193,13 @@ async function submitQuery(queryText) {
     showToast('Briefing report compiled successfully.', 'success');
   } catch (error) {
     showToast(error.message, 'danger');
-    renderReasoningTimeline([]); // Clear loading trace
+    renderReasoningTimeline([]);
   } finally {
-    btn.disabled = false;
-    input.disabled = false;
-    input.value = '';
+    if (btn) btn.disabled = false;
+    if (input) {
+      input.disabled = false;
+      input.value = '';
+    }
   }
 }
 
@@ -213,7 +226,6 @@ async function loadIntegrityStatus() {
 
 /**
  * Loads live KPI dashboard data from the /api/dashboard endpoint.
- * This is the primary data entry point — all KPI values come from here.
  */
 async function loadDashboard() {
   try {
@@ -226,6 +238,7 @@ async function loadDashboard() {
 
     if (data.kpis) {
       store.setKPIs(data.kpis);
+      renderAnalyticsCanvas(cachedRawDeals, cachedRawWOs, data.kpis);
     }
     if (data.dataHealth) {
       store.setDataHealth(data.dataHealth);
@@ -247,7 +260,7 @@ async function fetchBoardsDropdowns() {
   const wosSelect = document.getElementById('select-wos-board');
   const btn = document.getElementById('btn-fetch-boards');
   
-  btn.disabled = true;
+  if (btn) btn.disabled = true;
   store.addActivity('Retrieving boards list from Monday API...');
 
   try {
@@ -257,14 +270,14 @@ async function fetchBoardsDropdowns() {
     store.setBoards(boards);
     
     const options = boards.map(b => `<option value="${b.id}">${b.name} (${b.type})</option>`).join('');
-    dealsSelect.innerHTML = `<option value="">-- Select Deals Board --</option>${options}`;
-    wosSelect.innerHTML = `<option value="">-- Select Work Orders Board --</option>${options}`;
+    if (dealsSelect) dealsSelect.innerHTML = `<option value="">-- Select Deals Board --</option>${options}`;
+    if (wosSelect) wosSelect.innerHTML = `<option value="">-- Select Work Orders Board --</option>${options}`;
     
     showToast(`${boards.length} Boards fetched successfully.`, 'success');
   } catch (error) {
     showToast(error.message, 'danger');
   } finally {
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -272,92 +285,124 @@ async function fetchBoardsDropdowns() {
  * Setup Event Handlers.
  */
 function setupEvents() {
-  // Switch Views
-  document.getElementById('nav-terminal').addEventListener('click', () => switchView('terminal'));
-  document.getElementById('nav-ledger').addEventListener('click', () => {
+  // Navigation section tabs
+  const nTerm = document.getElementById('nav-terminal');
+  const nAnaly = document.getElementById('nav-analytics');
+  const nInteg = document.getElementById('nav-integrity');
+  const nLedg = document.getElementById('nav-ledger');
+
+  if (nTerm) nTerm.addEventListener('click', () => switchView('terminal'));
+  if (nAnaly) nAnaly.addEventListener('click', () => {
+    switchView('analytics');
+    renderAnalyticsCanvas(cachedRawDeals, cachedRawWOs, store.get().kpis || {});
+  });
+  if (nInteg) nInteg.addEventListener('click', () => switchView('integrity'));
+  if (nLedg) nLedg.addEventListener('click', () => {
     switchView('ledger');
     refreshLedgerDisplay();
   });
 
-  // Toggle Settings Panel
-  document.getElementById('btn-settings-toggle').addEventListener('click', () => toggleSettings(true));
-  document.getElementById('btn-settings-close').addEventListener('click', () => toggleSettings(false));
-  document.getElementById('settings-backdrop').addEventListener('click', () => toggleSettings(false));
+  // Settings Panel Toggle
+  const bSetToggle = document.getElementById('btn-settings-toggle');
+  const bSetClose = document.getElementById('btn-settings-close');
+  const bSetBack = document.getElementById('settings-backdrop');
+
+  if (bSetToggle) bSetToggle.addEventListener('click', () => toggleSettings(true));
+  if (bSetClose) bSetClose.addEventListener('click', () => toggleSettings(false));
+  if (bSetBack) bSetBack.addEventListener('click', () => toggleSettings(false));
 
   // Sync click
-  document.getElementById('btn-sync').addEventListener('click', executeSync);
+  const bSync = document.getElementById('btn-sync');
+  if (bSync) bSync.addEventListener('click', executeSync);
 
-  // Suggested flags click
-  document.getElementById('suggested-actions').addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-action-suggest');
-    if (btn) {
-      submitQuery(btn.dataset.query);
-    }
-  });
+  // Copy brief button
+  const bCopy = document.getElementById('btn-copy-brief');
+  if (bCopy) bCopy.addEventListener('click', copyBriefToClipboard);
 
-  // Welcome page buttons click
-  document.querySelectorAll('.welcome-sug-btn').forEach(btn => {
+  // Export CSV button
+  const bExportCsv = document.getElementById('btn-export-csv');
+  if (bExportCsv) bExportCsv.addEventListener('click', exportTableToCSV);
+
+  // Export Chart PNG buttons
+  document.querySelectorAll('.export-chart-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      submitQuery(e.target.dataset.query);
+      const chartId = e.target.dataset.chart;
+      if (chartId) exportChartAsPNG(chartId);
     });
   });
 
-  // Onboarding settings submit
-  document.getElementById('settings-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const payload = {
-      dealsBoardId: document.getElementById('select-deals-board').value,
-      workOrdersBoardId: document.getElementById('select-wos-board').value,
-      llmProvider: document.getElementById('select-llm-provider').value,
-      llmApiKey: document.getElementById('input-llm-key').value,
-      mondayApiToken: document.getElementById('input-monday-token').value,
-      columnMappings: {
-        deals: {
-          name: document.getElementById('map-deal-name').value,
-          value: document.getElementById('map-deal-value').value,
-          status: document.getElementById('map-deal-status').value
-        },
-        workOrders: {
-          dealName: document.getElementById('map-wo-name').value,
-          serialNumber: document.getElementById('map-wo-serial').value,
-          executionStatus: document.getElementById('map-wo-status').value
-        }
-      }
-    };
+  // Suggested flags click
+  const sugActions = document.getElementById('suggested-actions');
+  if (sugActions) {
+    sugActions.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-action-suggest');
+      if (btn) submitQuery(btn.dataset.query);
+    });
+  }
 
-    try {
-      store.addActivity('Saving integration schema definitions...');
-      await api.saveConfig(payload);
-      showToast('Config parameters saved.', 'success');
-      toggleSettings(false);
-      
-      // Auto-trigger synchronizer load
-      executeSync();
-    } catch (error) {
-      showToast(error.message, 'danger');
-    }
+  // Welcome prompt buttons click
+  document.querySelectorAll('.prompt-card-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const card = e.target.closest('.prompt-card-btn');
+      if (card) submitQuery(card.dataset.query);
+    });
   });
+
+  // Onboarding settings form submit
+  const setForm = document.getElementById('settings-form');
+  if (setForm) {
+    setForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const payload = {
+        dealsBoardId: document.getElementById('select-deals-board')?.value,
+        workOrdersBoardId: document.getElementById('select-wos-board')?.value,
+        llmProvider: document.getElementById('select-llm-provider')?.value,
+        llmApiKey: document.getElementById('input-llm-key')?.value,
+        mondayApiToken: document.getElementById('input-monday-token')?.value,
+        columnMappings: {
+          deals: {
+            name: document.getElementById('map-deal-name')?.value,
+            value: document.getElementById('map-deal-value')?.value,
+            status: document.getElementById('map-deal-status')?.value
+          },
+          workOrders: {
+            dealName: document.getElementById('map-wo-name')?.value,
+            serialNumber: document.getElementById('map-wo-serial')?.value,
+            executionStatus: document.getElementById('map-wo-status')?.value
+          }
+        }
+      };
+
+      try {
+        store.addActivity('Saving integration configuration definitions...');
+        await api.saveConfig(payload);
+        showToast('Settings parameters saved.', 'success');
+        toggleSettings(false);
+        executeSync();
+      } catch (error) {
+        showToast(error.message, 'danger');
+      }
+    });
+  }
 
   // Query submissions
-  document.getElementById('btn-query').addEventListener('click', () => {
-    const input = document.getElementById('query-input');
-    submitQuery(input.value);
-  });
-  
-  document.getElementById('query-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      submitQuery(e.target.value);
-    }
-  });
+  const bQuery = document.getElementById('btn-query');
+  const qInput = document.getElementById('query-input');
+
+  if (bQuery) bQuery.addEventListener('click', () => submitQuery(qInput?.value));
+  if (qInput) {
+    qInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitQuery(e.target.value);
+    });
+  }
 
   // Tab switcher in Ledger
-  document.getElementById('btn-tab-deals').addEventListener('click', () => {
-    store.setLedgerTab('deals');
-  });
-  document.getElementById('btn-tab-wos').addEventListener('click', () => {
-    store.setLedgerTab('wos');
-  });
+  const bTabDeals = document.getElementById('btn-tab-deals');
+  const bTabWos = document.getElementById('btn-tab-wos');
+
+  if (bTabDeals) bTabDeals.addEventListener('click', () => store.setLedgerTab('deals'));
+  if (bTabWos) bTabWos.addEventListener('click', () => store.setLedgerTab('wos'));
 
   // Ledger Search & Filter
   const ledgerSearch = document.getElementById('ledger-search');
@@ -396,19 +441,20 @@ function setupEvents() {
   }
 
   // Fetch boards list button
-  document.getElementById('btn-fetch-boards').addEventListener('click', fetchBoardsDropdowns);
+  const bFetchB = document.getElementById('btn-fetch-boards');
+  if (bFetchB) bFetchB.addEventListener('click', fetchBoardsDropdowns);
 
-  // Global Keyboard Shortcuts (Ctrl+K focus input)
+  // Global Keyboard Shortcuts (Ctrl+K focus query input)
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
-      const input = document.getElementById('query-input');
-      if (input) input.focus();
+      if (qInput) qInput.focus();
     }
   });
 
   // Close global error banner
-  document.getElementById('close-error-banner').addEventListener('click', hideErrorBanner);
+  const bCloseErr = document.getElementById('close-error-banner');
+  if (bCloseErr) bCloseErr.addEventListener('click', hideErrorBanner);
 }
 
 /**
@@ -418,11 +464,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   subscribe(handleStateChange);
   setupEvents();
   
-  store.addActivity('Terminal core online');
+  store.addActivity('Skylark Executive Command Terminal online');
   
-  // 1. Load connection status
   await loadIntegrityStatus();
-
-  // 2. Load live KPIs from Monday.com
   await loadDashboard();
 });

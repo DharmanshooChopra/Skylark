@@ -1,19 +1,18 @@
 /**
- * Intelligence Query Panel Manager.
- * Renders AI brief reports, execution timelines, and click suggested investigations.
+ * Executive AI Decision Intelligence & Briefing Renderer.
+ * Manages Markdown conversion, reasoning trace steps, prompt chips, and copy actions.
  */
 
-import { store } from './state.js';
-import { api } from './api.js';
 import { showToast } from './ui.js';
-import { renderChart } from './charts.js';
+
+let rawLastAnswer = '';
 
 /**
- * Super lightweight, zero-dependency Markdown-to-HTML formatter.
- * Handles headings, bold texts, lists, and double spacing line breaks.
+ * Markdown to HTML parser for Executive Briefings.
  */
 function parseMarkdown(md) {
   if (!md) return '';
+  rawLastAnswer = md;
   
   const lines = md.split('\n');
   let insideList = false;
@@ -29,7 +28,7 @@ function parseMarkdown(md) {
         insideList = false;
         prefix = '</ul>';
       }
-      return `${prefix}<h3>${headingText}</h3>`;
+      return `${prefix}<h3><span class="hdr-icon">📌</span> ${headingText}</h3>`;
     }
     
     // List check
@@ -71,7 +70,7 @@ function parseMarkdown(md) {
 }
 
 /**
- * Draws the AI Executive Report in the main pane.
+ * Draws the AI Executive Briefing Report.
  */
 export function renderResponse(response) {
   const panel = document.getElementById('response-panel');
@@ -85,22 +84,19 @@ export function renderResponse(response) {
 
   if (!panel || !response) return;
 
-  // Swap empty state for brief
   emptyState.classList.add('hidden');
   panel.classList.remove('hidden');
 
-  // Load content
   briefContent.innerHTML = parseMarkdown(response.answer);
   confBadge.innerText = `${response.confidence.score}% Confidence`;
   
-  // Impute details
   confEvidence.innerText = response.confidence.evidence || 'N/A';
   confAssumptions.innerText = response.confidence.assumptions || 'N/A';
   confLimitations.innerText = response.confidence.limitations || 'N/A';
 }
 
 /**
- * Draws the monospaced AI Execution Trace timeline.
+ * Draws AI Execution Trace steps.
  */
 export function renderReasoningTimeline(timeline) {
   const container = document.getElementById('timeline-steps');
@@ -115,20 +111,20 @@ export function renderReasoningTimeline(timeline) {
   card.classList.remove('hidden');
   
   container.innerHTML = timeline.map(step => `
-    <div class="timeline-step ${step.status}">
-      <div class="step-bullet">
+    <div class="trace-item ${step.status}">
+      <div class="trace-bullet">
         ${step.status === 'completed' ? '✓' : '●'}
       </div>
-      <div class="step-details">
-        <span class="step-name">${step.step}</span>
-        <span class="step-desc">${step.details}</span>
+      <div class="trace-info">
+        <span class="trace-name">${step.step}</span>
+        <span class="trace-details">${step.details}</span>
       </div>
     </div>
   `).join('');
 }
 
 /**
- * Populates recommended investigation button flags under the input bar.
+ * Populates suggested action chips under query bar.
  */
 export function renderSuggestedActions(actions) {
   const container = document.getElementById('suggested-actions');
@@ -144,4 +140,16 @@ export function renderSuggestedActions(actions) {
       ${act.label}
     </button>
   `).join('');
+}
+
+/**
+ * Copy brief text to user's clipboard.
+ */
+export function copyBriefToClipboard() {
+  if (!rawLastAnswer) return;
+  navigator.clipboard.writeText(rawLastAnswer).then(() => {
+    showToast('Executive Briefing copied to clipboard.', 'success');
+  }).catch(() => {
+    showToast('Failed to copy to clipboard.', 'danger');
+  });
 }

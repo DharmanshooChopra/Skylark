@@ -1,14 +1,11 @@
 /**
- * Core User Interface Controls, Drawers, Skeletons, and Alerts.
+ * Core User Interface Controls, Drawers, Skeletons, Alerts, and Section View Switching.
  */
 
 import { store } from './state.js';
 
 /**
  * Pushes a toast notification banner to the screen.
- * 
- * @param {string} message 
- * @param {'success' | 'warning' | 'danger'} type 
  */
 export function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
@@ -20,7 +17,6 @@ export function showToast(message, type = 'success') {
 
   container.appendChild(toast);
 
-  // Auto remove after 4 seconds
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(20px)';
@@ -33,15 +29,12 @@ export function showToast(message, type = 'success') {
 
 /**
  * Displays global top header error banner.
- * @param {string} message 
  */
 export function showErrorBanner(message) {
   const banner = document.getElementById('error-banner');
   if (!banner) return;
-  
   const msgText = banner.querySelector('.error-banner-message');
   if (msgText) msgText.innerText = message;
-  
   banner.classList.remove('hidden');
 }
 
@@ -74,35 +67,47 @@ export function toggleSettings(forceState) {
 }
 
 /**
- * Switches between workspace sections (Terminal view vs raw Data Ledger).
+ * Switches between workspace sections (Executive Briefing, Analytics Canvas, System Integrity, Data Ledger).
  * 
- * @param {'terminal' | 'ledger'} viewName 
+ * @param {'terminal' | 'analytics' | 'integrity' | 'ledger'} viewName 
  */
 export function switchView(viewName) {
-  const vTerminal = document.getElementById('view-terminal');
-  const vLedger = document.getElementById('view-ledger');
-  
-  const navTerminal = document.getElementById('nav-terminal');
-  const navLedger = document.getElementById('nav-ledger');
+  const views = {
+    terminal: document.getElementById('view-terminal'),
+    analytics: document.getElementById('view-analytics'),
+    integrity: document.getElementById('view-integrity'),
+    ledger: document.getElementById('view-ledger')
+  };
 
-  if (viewName === 'terminal') {
-    vTerminal.classList.remove('hidden');
-    vLedger.classList.add('hidden');
-    navTerminal.classList.add('active');
-    navTerminal.setAttribute('aria-current', 'page');
-    navLedger.classList.remove('active');
-    navLedger.removeAttribute('aria-current');
-  } else {
-    vTerminal.classList.add('hidden');
-    vLedger.classList.remove('hidden');
-    navTerminal.classList.remove('active');
-    navTerminal.removeAttribute('aria-current');
-    navLedger.classList.add('active');
-    navLedger.setAttribute('aria-current', 'page');
-  }
-  
+  const navs = {
+    terminal: document.getElementById('nav-terminal'),
+    analytics: document.getElementById('nav-analytics'),
+    integrity: document.getElementById('nav-integrity'),
+    ledger: document.getElementById('nav-ledger')
+  };
+
+  Object.keys(views).forEach(key => {
+    if (views[key]) {
+      if (key === viewName) {
+        views[key].classList.remove('hidden');
+      } else {
+        views[key].classList.add('hidden');
+      }
+    }
+
+    if (navs[key]) {
+      if (key === viewName) {
+        navs[key].classList.add('active');
+        navs[key].setAttribute('aria-current', 'page');
+      } else {
+        navs[key].classList.remove('active');
+        navs[key].removeAttribute('aria-current');
+      }
+    }
+  });
+
   store.setActiveView(viewName);
-  store.addActivity(`Switched workspace view to: ${viewName}`);
+  store.addActivity(`Switched workspace section to: ${viewName.toUpperCase()}`);
 }
 
 /**
@@ -112,11 +117,10 @@ export function renderKpiSkeletons() {
   const grid = document.getElementById('kpi-grid');
   if (!grid) return;
 
-  grid.innerHTML = Array(4).fill(0).map(() => `
-    <div class="kpi-card skeleton">
-      <div class="skeleton-line short"></div>
-      <div class="skeleton-line tall"></div>
-      <div class="skeleton-line short"></div>
+  grid.innerHTML = Array(5).fill(0).map(() => `
+    <div class="kpi-widget skeleton">
+      <div class="sk-line"></div>
+      <div class="sk-val"></div>
     </div>
   `).join('');
 }

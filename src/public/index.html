@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Skylark // Executive Intelligence Terminal</title>
+  <title>Skylark // Executive Business Intelligence Terminal</title>
   
-  <!-- Font -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -30,125 +30,132 @@
     <button id="close-error-banner" aria-label="Close Error Banner">&times;</button>
   </div>
 
-  <!-- Executive Header -->
+  <!-- Command Bar Header -->
   <header class="app-header">
-    <div class="header-left">
-      <div class="header-logo">
-        <span class="logo-mark">⚡</span>
-        <span class="logo-title">SKYLARK <span class="logo-subtitle">EXECUTIVE</span></span>
+    <div class="header-brand">
+      <div class="brand-logo">
+        <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-title">SKYLARK</span>
+          <span class="brand-subtitle">AEROSPACE BI COMMAND</span>
+        </div>
       </div>
 
-      <!-- Segmented View Switcher -->
-      <nav class="header-nav" aria-label="Main Navigation">
-        <button id="nav-terminal" class="nav-tab active" aria-current="page">
-          <span class="nav-tab-icon">📊</span> Executive Terminal
+      <!-- Main Section Tabs -->
+      <nav class="main-tabs" aria-label="Main Navigation">
+        <button id="nav-terminal" class="tab-btn active" aria-current="page">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+          Executive Briefing
         </button>
-        <button id="nav-ledger" class="nav-tab">
-          <span class="nav-tab-icon">📋</span> Data Ledger
+        <button id="nav-analytics" class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Analytics Canvas
+        </button>
+        <button id="nav-integrity" class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          System Integrity
+        </button>
+        <button id="nav-ledger" class="tab-btn">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          Data Ledger
         </button>
       </nav>
     </div>
     
     <div class="header-right">
-      <div class="status-pill-group">
-        <div id="connection-badge" class="status-pill online" title="Monday.com Integration Status">
-          <span class="pill-dot"></span>
-          <span class="badge-text">MONDAY LIVE</span>
+      <div class="system-status-pills">
+        <div id="connection-badge" class="status-pill pill-online" title="Monday.com Integration Connection">
+          <span class="pulse-dot"></span>
+          <span class="pill-text">MONDAY LIVE</span>
         </div>
         
-        <div id="ai-badge" class="status-pill online" title="AI Provider Status">
-          <span class="pill-dot"></span>
-          <span class="badge-text">AI ACTIVE</span>
+        <div id="ai-badge" class="status-pill pill-ai" title="AI Provider Pipeline Status">
+          <span class="pulse-dot"></span>
+          <span class="pill-text">AI ACTIVE</span>
         </div>
 
-        <div class="sync-timestamp">
-          <span class="timestamp-label">Synced:</span>
-          <span id="sync-time">Just now</span>
+        <div class="sync-clock">
+          <span class="clock-label">SYNC:</span>
+          <span id="sync-time" class="clock-time">Just now</span>
         </div>
       </div>
       
-      <div class="header-actions">
-        <button id="btn-sync" class="btn btn-ghost" aria-label="Synchronize Data">
-          <span class="btn-icon">↻</span> Refresh
+      <div class="command-actions">
+        <button id="btn-sync" class="btn btn-action" aria-label="Synchronize Data">
+          <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Refresh
         </button>
-        <button id="btn-settings-toggle" class="btn btn-ghost btn-icon-only" aria-label="Open Settings" title="Settings">
-          ⚙
+        <button id="btn-settings-toggle" class="btn btn-icon-only" aria-label="Open Settings" title="Settings">
+          <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="main-container">
+  <!-- App Workspace Body -->
+  <main class="app-workspace">
     
-    <!-- Executive Terminal View -->
-    <section id="view-terminal" class="workspace-view">
-      
-      <!-- Hero Metric Pulse Cards (4 Primary Executive Cards) -->
-      <div id="kpi-grid" class="kpi-grid">
-        <!-- KPI Cards rendered dynamically via JavaScript -->
-        <div class="kpi-card skeleton">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line tall"></div>
-          <div class="skeleton-line short"></div>
-        </div>
-        <div class="kpi-card skeleton">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line tall"></div>
-          <div class="skeleton-line short"></div>
-        </div>
-        <div class="kpi-card skeleton">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line tall"></div>
-          <div class="skeleton-line short"></div>
-        </div>
-        <div class="kpi-card skeleton">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line tall"></div>
-          <div class="skeleton-line short"></div>
-        </div>
+    <!-- 5 Hero Analytics Widget Cards Across Top -->
+    <section id="hero-kpi-bar" class="kpi-hero-bar">
+      <div id="kpi-grid" class="kpi-grid-5">
+        <!-- Dynamic KPI Cards rendered by JS -->
+        <div class="kpi-widget skeleton"><div class="sk-line"></div><div class="sk-val"></div></div>
+        <div class="kpi-widget skeleton"><div class="sk-line"></div><div class="sk-val"></div></div>
+        <div class="kpi-widget skeleton"><div class="sk-line"></div><div class="sk-val"></div></div>
+        <div class="kpi-widget skeleton"><div class="sk-line"></div><div class="sk-val"></div></div>
+        <div class="kpi-widget skeleton"><div class="sk-line"></div><div class="sk-val"></div></div>
       </div>
+    </section>
 
-      <!-- Main Dual Stream Grid -->
-      <div class="split-pane">
+    <!-- SECTION 1: EXECUTIVE BRIEFING VIEW -->
+    <section id="view-terminal" class="workspace-section">
+      <div class="briefing-split-layout">
         
-        <!-- Left Stream: Query Console & Executive Briefings -->
-        <div class="pane-column main-stream">
+        <!-- Left Stream: Query Bar & Decision Briefing -->
+        <div class="stream-main">
           
-          <!-- Executive Query Bar -->
-          <div class="panel-card query-card">
-            <div class="card-header-clean">
-              <span class="card-tag">AI ORCHESTRATION</span>
-              <h2 class="card-heading">Executive Decision Query</h2>
+          <!-- Executive Query Panel -->
+          <div class="card-glass query-card">
+            <div class="card-title-bar">
+              <span class="pill-badge pill-purple">AI ORCHESTRATOR</span>
+              <h2 class="title-text">Executive Decision Query</h2>
             </div>
             
-            <div class="query-input-container">
-              <input type="text" id="query-input" placeholder="Ask about revenue leakage, backlog delays, or cycle velocity... (Ctrl+K)" aria-label="Natural Language Query Input">
-              <button id="btn-query" class="btn btn-primary">Run Query</button>
+            <div class="query-bar-group">
+              <input type="text" id="query-input" placeholder="Ask about revenue leakage, backlog delays, or cycle velocity... (Press Ctrl+K)" aria-label="Natural Language Query Input">
+              <button id="btn-query" class="btn btn-emerald">
+                <span>Run Analysis</span>
+                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
             </div>
 
-            <div id="suggested-actions" class="suggested-actions">
+            <div id="suggested-actions" class="prompt-chips-row">
               <!-- Action chips rendered dynamically -->
             </div>
           </div>
 
-          <!-- AI Briefing Report Card -->
-          <div id="response-panel" class="panel-card response-panel hidden">
-            <div class="response-header">
-              <div class="brief-title-group">
-                <span class="card-tag tag-purple">SYNTHESIZED BRIEFING</span>
-                <h2 class="card-heading">Executive Report</h2>
+          <!-- AI Executive Response Brief Card -->
+          <div id="response-panel" class="card-glass response-panel hidden">
+            <div class="response-header-bar">
+              <div class="brief-title-block">
+                <span class="pill-badge pill-blue">SYNTHESIZED BRIEFING</span>
+                <h2 class="brief-title">Executive Briefing Report</h2>
               </div>
-              <div id="brief-confidence" class="confidence-badge">92% Confidence</div>
+              <div class="brief-actions">
+                <button id="btn-copy-brief" class="btn btn-ghost btn-sm" title="Copy Brief Markdown">Copy Brief</button>
+                <div id="brief-confidence" class="confidence-chip">92% Confidence</div>
+              </div>
             </div>
             
-            <div id="brief-content" class="brief-content markdown-body">
-              <!-- Brief output -->
+            <div id="brief-content" class="brief-body-md">
+              <!-- Brief markdown content -->
             </div>
 
-            <details class="confidence-details">
-              <summary>Methodology & Assumptions Ledger</summary>
-              <div class="details-body">
+            <details class="methodology-accordion">
+              <summary>Confidence & Data Methodology Ledger</summary>
+              <div class="methodology-content">
                 <p><strong>Evidence:</strong> <span id="conf-evidence">N/A</span></p>
                 <p><strong>Assumptions:</strong> <span id="conf-assumptions">N/A</span></p>
                 <p><strong>Limitations:</strong> <span id="conf-limitations">N/A</span></p>
@@ -157,150 +164,249 @@
           </div>
           
           <!-- Empty State / Welcome Console -->
-          <div id="query-empty-state" class="panel-card empty-panel-state">
-            <div class="empty-icon-glow">⚡</div>
-            <h3>Executive Intelligence Console</h3>
-            <p>Query Skylark to synthesize cross-board operational and pipeline analytics into an executive decision brief.</p>
+          <div id="query-empty-state" class="card-glass empty-state-box">
+            <div class="glow-icon-wrap">⚡</div>
+            <h3 class="empty-title">Skylark Executive Intelligence Engine</h3>
+            <p class="empty-desc">Synthesize cross-board sales pipeline and operational fulfillment datasets into an executive decision briefing.</p>
             
-            <div class="welcome-suggestions">
-              <button class="welcome-sug-btn" data-query="Calculate won deals, backlog value, and revenue leakage">
-                <span class="sug-icon">📊</span> Overview Operations & Sales Status
+            <div class="welcome-prompts-grid">
+              <button class="prompt-card-btn" data-query="Calculate won deals, backlog value, and revenue leakage">
+                <div class="prompt-icon">📊</div>
+                <div class="prompt-text">
+                  <span class="prompt-heading">Operations & Sales Overview</span>
+                  <span class="prompt-sub">Calculate won deals, backlog, and revenue leakage</span>
+                </div>
               </button>
-              <button class="welcome-sug-btn" data-query="Analyze backlog bottleneck delays and delayed deliveries">
-                <span class="sug-icon">🚨</span> Audit Stalled Backlog Bottlenecks
+              
+              <button class="prompt-card-btn" data-query="Analyze backlog bottleneck delays and delayed deliveries">
+                <div class="prompt-icon">🚨</div>
+                <div class="prompt-text">
+                  <span class="prompt-heading">Stalled Backlog Bottlenecks</span>
+                  <span class="prompt-sub">Audit active work order queues and past-due targets</span>
+                </div>
               </button>
-              <button class="welcome-sug-btn" data-query="What is the average sales-to-operations handoff cycle time?">
-                <span class="sug-icon">⏱</span> Audit Handoff Cycle Velocities
+              
+              <button class="prompt-card-btn" data-query="What is the average sales-to-operations handoff cycle time?">
+                <div class="prompt-icon">⏱</div>
+                <div class="prompt-text">
+                  <span class="prompt-heading">Handoff Velocity Audit</span>
+                  <span class="prompt-sub">Calculate average lead-to-operations cycle days</span>
+                </div>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Right Stream: Dynamics Visualization & System Health -->
-        <div class="pane-column diagnostics-column">
+        <!-- Right Stream: Reasoning Trace & Alerts -->
+        <div class="stream-side">
           
-          <!-- Visualization & Reasoning Card -->
-          <div id="chart-card" class="panel-card chart-card hidden">
-            <div class="card-header-clean">
-              <span class="card-tag">ANALYTICS</span>
-              <h2 class="card-heading">Visual Dynamics</h2>
+          <!-- Reasoning Trace Card -->
+          <div id="timeline-card" class="card-glass trace-card hidden">
+            <div class="card-title-bar">
+              <span class="pill-badge pill-indigo">EXECUTION TRACE</span>
+              <h2 class="title-text">AI Reasoning Trace</h2>
             </div>
-            <div class="chart-container">
+            <div id="timeline-steps" class="trace-steps-list">
+              <!-- Dynamic trace steps -->
+            </div>
+          </div>
+
+          <!-- Dynamic Visual Analytics Card -->
+          <div id="chart-card" class="card-glass chart-mini-card hidden">
+            <div class="card-title-bar">
+              <span class="pill-badge pill-blue">VISUAL DYNAMICS</span>
+              <h2 class="title-text">Query Analytics Canvas</h2>
+            </div>
+            <div class="chart-wrapper">
               <canvas id="analytics-chart"></canvas>
             </div>
           </div>
 
-          <!-- AI Execution Reasoning Trace Card -->
-          <div id="timeline-card" class="panel-card timeline-card hidden">
-            <div class="card-header-clean">
-              <span class="card-tag">TRACE</span>
-              <h2 class="card-heading">Reasoning Steps</h2>
-            </div>
-            <div id="timeline-steps" class="timeline-steps">
-              <!-- Dynamic timeline -->
-            </div>
-          </div>
-
-          <!-- Data Health Monitor Card -->
-          <div class="panel-card health-card">
-            <div class="card-header-clean">
-              <span class="card-tag">INTEGRITY AUDIT</span>
-              <h2 class="card-heading">Data Health Monitor</h2>
-            </div>
-
-            <div class="health-overview">
-              <div class="health-gauge-box">
-                <div id="health-score" class="health-score-number">--</div>
-                <div class="health-score-caption">INTEGRITY SCORE</div>
-              </div>
-              
-              <div class="health-stats-grid">
-                <div class="health-stat-item">
-                  <span class="health-stat-label">Total Items</span>
-                  <span id="health-total" class="health-stat-val">--</span>
-                </div>
-                <div class="health-stat-item">
-                  <span class="health-stat-label">Valid Items</span>
-                  <span id="health-valid" class="health-stat-val">--</span>
-                </div>
-                <div class="health-stat-item">
-                  <span class="health-stat-label">Headers Removed</span>
-                  <span id="health-removed" class="health-stat-val">--</span>
-                </div>
-                <div class="health-stat-item">
-                  <span class="health-stat-label">Imputed Fields</span>
-                  <span id="health-imputed" class="health-stat-val">--</span>
-                </div>
-              </div>
+          <!-- Executive Critical Alerts Card -->
+          <div class="card-glass alerts-card">
+            <div class="card-title-bar">
+              <span class="pill-badge pill-red">RISK MONITOR</span>
+              <h2 class="title-text">Critical Business Alerts</h2>
             </div>
             
-            <div id="health-warnings" class="health-warnings hidden">
-              <div class="warnings-title">System Anomalies & Logs</div>
-              <ul id="warnings-list" class="warnings-list">
-                <!-- Warnings -->
-              </ul>
-            </div>
-          </div>
+            <div class="alerts-list">
+              <div class="alert-item risk-high">
+                <div class="alert-bullet"></div>
+                <div class="alert-content">
+                  <span class="alert-title">111 Orphan Deals Lack Work Orders</span>
+                  <span class="alert-sub">₹7.87 Cr revenue leakage risk booked in Sales pipeline without active work orders.</span>
+                </div>
+              </div>
 
-          <!-- System Activity Log Card -->
-          <div class="panel-card activity-card">
-            <div class="card-header-clean">
-              <span class="card-tag">ACTIVITY</span>
-              <h2 class="card-heading">System Log</h2>
+              <div class="alert-item risk-warn">
+                <div class="alert-bullet"></div>
+                <div class="alert-content">
+                  <span class="alert-title">Backlog Exceeds 100% of Completed Revenue</span>
+                  <span class="alert-sub">₹10.63 Cr active backlog requires delivery acceleration.</span>
+                </div>
+              </div>
             </div>
-            <ul id="activity-log" class="activity-log">
-              <!-- Logs -->
-            </ul>
           </div>
 
         </div>
       </div>
     </section>
 
-    <!-- Data Ledger View -->
-    <section id="view-ledger" class="workspace-view hidden">
-      <div class="panel-card ledger-panel">
+    <!-- SECTION 2: MULTI-CHART ANALYTICS CANVAS -->
+    <section id="view-analytics" class="workspace-section hidden">
+      <div class="analytics-gallery-grid">
         
-        <div class="ledger-toolbar">
+        <div class="card-glass chart-gallery-card">
+          <div class="card-title-bar space-between">
+            <div>
+              <span class="pill-badge pill-emerald">REVENUE & BACKLOG</span>
+              <h2 class="title-text">Financial Performance Breakdown</h2>
+            </div>
+            <button class="btn btn-ghost btn-xs export-chart-btn" data-chart="canvas-financials">Export PNG</button>
+          </div>
+          <div class="gallery-chart-container">
+            <canvas id="canvas-financials"></canvas>
+          </div>
+        </div>
+
+        <div class="card-glass chart-gallery-card">
+          <div class="card-title-bar space-between">
+            <div>
+              <span class="pill-badge pill-blue">SALES PIPELINE</span>
+              <h2 class="title-text">Deal Stage Distribution</h2>
+            </div>
+            <button class="btn btn-ghost btn-xs export-chart-btn" data-chart="canvas-pipeline">Export PNG</button>
+          </div>
+          <div class="gallery-chart-container">
+            <canvas id="canvas-pipeline"></canvas>
+          </div>
+        </div>
+
+        <div class="card-glass chart-gallery-card">
+          <div class="card-title-bar space-between">
+            <div>
+              <span class="pill-badge pill-indigo">SECTOR ALLOCATION</span>
+              <h2 class="title-text">Revenue Distribution by Sector</h2>
+            </div>
+            <button class="btn btn-ghost btn-xs export-chart-btn" data-chart="canvas-sectors">Export PNG</button>
+          </div>
+          <div class="gallery-chart-container">
+            <canvas id="canvas-sectors"></canvas>
+          </div>
+        </div>
+
+        <div class="card-glass chart-gallery-card">
+          <div class="card-title-bar space-between">
+            <div>
+              <span class="pill-badge pill-amber">OPERATIONS QUEUE</span>
+              <h2 class="title-text">Work Order Execution Status</h2>
+            </div>
+            <button class="btn btn-ghost btn-xs export-chart-btn" data-chart="canvas-execution">Export PNG</button>
+          </div>
+          <div class="gallery-chart-container">
+            <canvas id="canvas-execution"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 3: SYSTEM INTEGRITY CENTER -->
+    <section id="view-integrity" class="workspace-section hidden">
+      <div class="integrity-grid">
+        
+        <!-- Health Score Ring Card -->
+        <div class="card-glass integrity-gauge-card">
+          <div class="card-title-bar">
+            <span class="pill-badge pill-emerald">DATA HEALTH INDEX</span>
+            <h2 class="title-text">System Data Quality Index</h2>
+          </div>
+
+          <div class="gauge-ring-wrapper">
+            <svg class="gauge-svg" viewBox="0 0 120 120">
+              <circle class="gauge-bg" cx="60" cy="60" r="50"/>
+              <circle id="gauge-progress-circle" class="gauge-fill" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="0"/>
+            </svg>
+            <div class="gauge-center-text">
+              <span id="health-score" class="gauge-score">100%</span>
+              <span class="gauge-label">INTEGRITY</span>
+            </div>
+          </div>
+
+          <div class="integrity-summary-stats">
+            <div class="int-stat"><span class="int-label">Total Records</span><span id="health-total" class="int-val">522</span></div>
+            <div class="int-stat"><span class="int-label">Valid Records</span><span id="health-valid" class="int-val">520</span></div>
+            <div class="int-stat"><span class="int-label">Headers Removed</span><span id="health-removed" class="int-val">2</span></div>
+            <div class="int-stat"><span class="int-label">Imputed Values</span><span id="health-imputed" class="int-val">0</span></div>
+          </div>
+        </div>
+
+        <!-- System Activity Log Timeline Card -->
+        <div class="card-glass integrity-log-card">
+          <div class="card-title-bar space-between">
+            <div>
+              <span class="pill-badge pill-blue">AUDIT TIMELINE</span>
+              <h2 class="title-text">System Activities Feed</h2>
+            </div>
+            <span class="feed-live-badge">● LIVE FEED</span>
+          </div>
+
+          <ul id="activity-log" class="activity-timeline-feed">
+            <!-- Dynamic logs -->
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 4: CANONICAL DATA LEDGER -->
+    <section id="view-ledger" class="workspace-section hidden">
+      <div class="card-glass ledger-card">
+        
+        <div class="ledger-control-bar">
           <div class="ledger-title-group">
-            <h2 class="card-heading">Canonical Business Ledger</h2>
-            <span id="ledger-record-count" class="badge-tag">0 Records</span>
+            <h2 class="title-text">Canonical Business Ledger</h2>
+            <span id="ledger-record-count" class="pill-badge pill-blue">0 Records</span>
           </div>
           
-          <div class="ledger-actions">
-            <div class="ledger-search-box">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="ledger-search" placeholder="Search name, code, sector..." aria-label="Search Ledger Table">
+          <div class="ledger-actions-group">
+            <div class="search-input-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="ledger-search" placeholder="Search opportunity, code, sector..." aria-label="Search Ledger Table">
             </div>
             
             <select id="ledger-filter-status" class="ledger-select" aria-label="Filter by Status">
               <option value="ALL">All Statuses</option>
             </select>
             
-            <div class="segmented-control">
-              <button id="btn-tab-deals" class="segment-btn active">Normalized Deals</button>
-              <button id="btn-tab-wos" class="segment-btn">Normalized Work Orders</button>
+            <div class="segmented-pill-tabs">
+              <button id="btn-tab-deals" class="seg-btn active">Normalized Deals</button>
+              <button id="btn-tab-wos" class="seg-btn">Normalized Work Orders</button>
             </div>
+
+            <button id="btn-export-csv" class="btn btn-ghost btn-sm" title="Export Table as CSV">
+              📥 Export CSV
+            </button>
           </div>
         </div>
         
-        <div class="ledger-table-wrapper">
+        <div class="ledger-table-container">
           <table id="ledger-table" class="ledger-table">
             <thead>
-              <!-- Headers -->
+              <!-- Headers loaded dynamically -->
             </thead>
             <tbody>
-              <!-- Rows -->
+              <!-- Rows loaded dynamically -->
             </tbody>
           </table>
         </div>
 
-        <div id="ledger-pagination" class="ledger-pagination">
-          <span id="ledger-page-info" class="pagination-info">Showing 0 of 0</span>
-          <div class="pagination-controls">
-            <button id="btn-page-prev" class="btn btn-ghost btn-sm" disabled>&lt; Previous</button>
-            <span id="ledger-page-num" class="page-indicator">1</span>
-            <button id="btn-page-next" class="btn btn-ghost btn-sm" disabled>Next &gt;</button>
+        <div id="ledger-pagination" class="ledger-pagination-bar">
+          <span id="ledger-page-info" class="pagination-text">Showing 0 of 0</span>
+          <div class="pagination-btns">
+            <button id="btn-page-prev" class="btn btn-ghost btn-xs" disabled>&lt; Previous</button>
+            <span id="ledger-page-num" class="page-badge">1</span>
+            <button id="btn-page-next" class="btn btn-ghost btn-xs" disabled>Next &gt;</button>
           </div>
         </div>
 
@@ -308,110 +414,71 @@
     </section>
   </main>
 
-  <!-- Settings Drawer Modal -->
-  <div id="settings-panel" class="settings-drawer hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <div class="drawer-header">
-      <h2 id="settings-title">Platform Configuration</h2>
-      <button id="btn-settings-close" class="btn-close" aria-label="Close Settings">&times;</button>
+  <!-- Integration Settings Drawer Modal -->
+  <div id="settings-panel" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-header">
+      <h2 id="settings-title">Platform Integration Settings</h2>
+      <button id="btn-settings-close" class="close-btn" aria-label="Close Settings">&times;</button>
     </div>
     
-    <div class="drawer-body">
+    <div class="modal-body">
       <form id="settings-form">
-        <div class="form-section">
-          <h3 class="form-section-title">API Credentials</h3>
+        <div class="form-group-block">
+          <h3 class="group-title">Monday.com & AI Credentials</h3>
           
-          <div class="form-group">
+          <div class="field-wrap">
             <label for="input-monday-token">Monday.com Personal API Token</label>
             <input type="password" id="input-monday-token" placeholder="Paste personal API token..." autocomplete="off">
-            <span class="help-text">Leave empty to use .env server token.</span>
+            <span class="field-hint">Leave blank to use server environment token.</span>
           </div>
 
-          <div class="form-group">
+          <div class="field-wrap">
             <label for="select-llm-provider">LLM Provider Engine</label>
             <select id="select-llm-provider">
               <option value="gemini">Google Gemini Developer API</option>
-              <option value="openai">OpenAI Compatible API</option>
+              <option value="openai">OpenAI Compatible Endpoint</option>
             </select>
           </div>
 
-          <div class="form-group">
+          <div class="field-wrap">
             <label for="input-llm-key">AI API Key</label>
             <input type="password" id="input-llm-key" placeholder="Paste Gemini or OpenAI key..." autocomplete="off">
           </div>
         </div>
 
-        <div class="form-section">
-          <h3 class="form-section-title">Monday.com Board Settings</h3>
+        <div class="form-group-block">
+          <h3 class="group-title">Board Configurations</h3>
           
-          <div class="form-group">
+          <div class="field-wrap">
             <button type="button" id="btn-fetch-boards" class="btn btn-ghost btn-full">
-              Fetch Boards List
+              Fetch Monday Board List
             </button>
           </div>
 
-          <div class="form-group">
+          <div class="field-wrap">
             <label for="select-deals-board">Sales Deals Board</label>
             <select id="select-deals-board">
-              <option value="">-- Fetch boards first --</option>
+              <option value="">-- Fetch boards list first --</option>
             </select>
           </div>
 
-          <div class="form-group">
+          <div class="field-wrap">
             <label for="select-wos-board">Work Orders Board</label>
             <select id="select-wos-board">
-              <option value="">-- Fetch boards first --</option>
+              <option value="">-- Fetch boards list first --</option>
             </select>
           </div>
         </div>
 
-        <div class="form-section">
-          <h3 class="form-section-title">Column ID Mappings</h3>
-          <p class="section-desc">Override auto-mapped column IDs if required.</p>
-          
-          <div class="mapping-grid">
-            <div class="mapping-col">
-              <span class="mapping-label">Deals Board</span>
-              <div class="form-group sm">
-                <label for="map-deal-name">Deal Name</label>
-                <input type="text" id="map-deal-name" placeholder="name">
-              </div>
-              <div class="form-group sm">
-                <label for="map-deal-value">Value</label>
-                <input type="text" id="map-deal-value" placeholder="numeric_mm5f31m2">
-              </div>
-              <div class="form-group sm">
-                <label for="map-deal-status">Status</label>
-                <input type="text" id="map-deal-status" placeholder="color_mm5f9xkm">
-              </div>
-            </div>
-            
-            <div class="mapping-col">
-              <span class="mapping-label">Work Orders Board</span>
-              <div class="form-group sm">
-                <label for="map-wo-name">Project Name</label>
-                <input type="text" id="map-wo-name" placeholder="name">
-              </div>
-              <div class="form-group sm">
-                <label for="map-wo-serial">Serial #</label>
-                <input type="text" id="map-wo-serial" placeholder="dropdown_mm5frdrq">
-              </div>
-              <div class="form-group sm">
-                <label for="map-wo-status">Execution Status</label>
-                <input type="text" id="map-wo-status" placeholder="color_mm5fs03f">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <button type="submit" id="btn-save-settings" class="btn btn-primary btn-full">
-          Save Configuration & Sync
+        <button type="submit" id="btn-save-settings" class="btn btn-emerald btn-full">
+          Save Settings & Re-sync Data
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Drawer Backdrop -->
-  <div id="settings-backdrop" class="drawer-backdrop hidden"></div>
+  <!-- Modal Backdrop -->
+  <div id="settings-backdrop" class="modal-backdrop hidden"></div>
 
 </body>
 </html>
