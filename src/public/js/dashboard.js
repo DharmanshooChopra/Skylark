@@ -1,16 +1,15 @@
 /**
- * Dashboard Renderer.
- * Draws Executive KPIs, Data Health gauges, Activity logs, and normalized Data Ledger tables.
+ * Executive Dashboard & Ledger Renderer.
+ * Provides clean formatting, 4 hero KPI cards, integrity gauges, and Data Ledger table.
  */
 
 import { store } from './state.js';
 
 /**
- * Formats a currency value with both readable Compact Notation (Crores / Millions)
- * and formatted full digits.
+ * Formats currency into clean Indian Rupee representations (Crores / Lakhs) with full format fallback.
  * 
  * @param {number} num 
- * @returns {string} Formatted string
+ * @returns {string} Formatted currency text
  */
 function formatCurrency(num) {
   if (num === null || num === undefined || isNaN(num)) return '₹0';
@@ -18,7 +17,7 @@ function formatCurrency(num) {
   const abs = Math.abs(num);
   let compact = '';
 
-  if (abs >= 10000007) { // 1 Crore = 10,000,000
+  if (abs >= 10000000) { // 1 Crore = 10,000,000
     compact = ` (₹${(num / 10000000).toFixed(2)} Cr)`;
   } else if (abs >= 100000) { // 1 Lakh = 100,000
     compact = ` (₹${(num / 100000).toFixed(2)} L)`;
@@ -28,7 +27,19 @@ function formatCurrency(num) {
 }
 
 /**
- * Renders the Executive KPI pulse grid (6 Cards).
+ * Compact currency for secondary captions.
+ */
+function formatCompact(num) {
+  if (num === null || num === undefined || isNaN(num)) return '₹0';
+  const abs = Math.abs(num);
+  if (abs >= 10000000) return `₹${(num / 10000000).toFixed(2)} Cr`;
+  if (abs >= 100000) return `₹${(num / 100000).toFixed(2)} L`;
+  if (abs >= 1000) return `₹${(num / 1000).toFixed(0)}K`;
+  return `₹${Math.round(num)}`;
+}
+
+/**
+ * Renders 4 Hero Executive KPI Pulse Cards.
  */
 export function renderKPIs(kpis) {
   const grid = document.getElementById('kpi-grid');
@@ -38,61 +49,47 @@ export function renderKPIs(kpis) {
     {
       title: 'Completed Revenue',
       val: formatCurrency(kpis.revenue?.value || 0),
-      sub: kpis.revenue?.formula || 'Sum of completed work orders excl GST',
-      tag: 'Completed',
+      sub: 'Sum of completed work orders excl GST',
+      badge: 'Delivered',
       class: 'up'
     },
     {
       title: 'Pipeline Value',
       val: formatCurrency(kpis.pipelineValue?.value || 0),
-      sub: kpis.pipelineValue?.formula || 'Sum of active open deals',
-      tag: 'Open Deals',
+      sub: `${kpis.wonDealsCount?.value || 0} Won Deals • ${formatCompact(kpis.averageDealSize?.value || 0)} Avg Deal`,
+      badge: 'Open Pipeline',
       class: 'up'
     },
     {
       title: 'Fulfillment Backlog',
       val: formatCurrency(kpis.backlog?.value || 0),
-      sub: kpis.backlog?.formula || 'Sum of active uncompleted work orders',
-      tag: 'In Progress',
-      class: (kpis.backlog?.value || 0) > (kpis.revenue?.value || 0) * 0.5 ? 'down' : 'up'
+      sub: `${kpis.activeWorkOrdersCount?.value || 0} Active Work Orders in Queue`,
+      badge: 'Active Queue',
+      class: (kpis.backlog?.value || 0) > (kpis.revenue?.value || 0) * 0.5 ? 'warn' : 'up'
     },
     {
-      title: 'Win Rate',
+      title: 'Win Rate & Revenue Leak',
       val: `${(kpis.winRate?.value || 0).toFixed(1)}%`,
-      sub: `${kpis.wonDealsCount?.value || 0} Won Deals out of total closed`,
-      tag: 'Sales Conversion',
-      class: (kpis.winRate?.value || 0) >= 50 ? 'up' : 'down'
-    },
-    {
-      title: 'Revenue Leakage',
-      val: formatCurrency(kpis.revenueLeakage?.value || 0),
-      sub: `${kpis.revenueLeakage?.count || 0} Won Deals without active Work Orders`,
-      tag: `${kpis.revenueLeakage?.count || 0} Orphan Deals`,
+      sub: `${formatCompact(kpis.revenueLeakage?.value || 0)} Leakage (${kpis.revenueLeakage?.count || 0} Orphan Deals)`,
+      badge: (kpis.revenueLeakage?.count || 0) > 0 ? 'Leak Warning' : 'Healthy',
       class: (kpis.revenueLeakage?.count || 0) > 0 ? 'down' : 'up'
-    },
-    {
-      title: 'Handoff Velocity',
-      val: `${(kpis.fulfillmentCycleTime?.value || 0).toFixed(1)} Days`,
-      sub: kpis.fulfillmentCycleTime?.formula || 'Deal close date to project start date',
-      tag: 'Lead-to-Op Cycle',
-      class: ''
     }
   ];
 
   grid.innerHTML = list.map(card => `
     <div class="kpi-card">
-      <div class="kpi-header-row">
+      <div class="kpi-card-header">
         <span class="kpi-title">${card.title}</span>
-        ${card.tag ? `<span class="kpi-tag ${card.class}">${card.tag}</span>` : ''}
+        <span class="kpi-badge ${card.class}">${card.badge}</span>
       </div>
       <div class="kpi-val">${card.val}</div>
-      <div class="kpi-sub ${card.class}">${card.sub}</div>
+      <div class="kpi-sub">${card.sub}</div>
     </div>
   `).join('');
 }
 
 /**
- * Draws Data Health index panel.
+ * Draws Data Health Index Panel.
  */
 export function renderDataHealth(health) {
   const scoreVal = document.getElementById('health-score');
@@ -109,11 +106,11 @@ export function renderDataHealth(health) {
   
   // Dynamic color coding
   if (health.score >= 90) {
-    scoreVal.style.color = '#22C55E'; // Success
+    scoreVal.style.color = '#10B981'; // Emerald
   } else if (health.score >= 70) {
-    scoreVal.style.color = '#F59E0B'; // Warning
+    scoreVal.style.color = '#F59E0B'; // Amber
   } else {
-    scoreVal.style.color = '#EF4444'; // Danger
+    scoreVal.style.color = '#EF4444'; // Crimson
   }
 
   totalVal.innerText = (health.totalRecords || 0).toLocaleString();
@@ -143,27 +140,27 @@ export function renderActivityLog(logs) {
 }
 
 /**
- * Helper to generate status badge pill HTML.
+ * Helper to generate clean status pill badges.
  */
-function getStatusBadge(status) {
-  if (!status) return '<span class="status-pill status-neutral">Unknown</span>';
+function getStatusPill(status) {
+  if (!status) return '<span class="status-pill pill-neutral">Unknown</span>';
   const str = String(status).trim();
   const lower = str.toLowerCase();
 
   if (['won', 'completed', 'billed'].includes(lower)) {
-    return `<span class="status-pill status-success"><span class="badge-dot"></span>${str}</span>`;
+    return `<span class="status-pill pill-success"><span class="pill-dot"></span>${str}</span>`;
   }
   if (['open', 'in progress', 'partially billed'].includes(lower)) {
-    return `<span class="status-pill status-info"><span class="badge-dot"></span>${str}</span>`;
+    return `<span class="status-pill pill-info"><span class="pill-dot"></span>${str}</span>`;
   }
   if (['dead', 'stalled', 'unbilled', 'on hold'].includes(lower)) {
-    return `<span class="status-pill status-danger"><span class="badge-dot"></span>${str}</span>`;
+    return `<span class="status-pill pill-danger"><span class="pill-dot"></span>${str}</span>`;
   }
-  return `<span class="status-pill status-neutral">${str}</span>`;
+  return `<span class="status-pill pill-neutral">${str}</span>`;
 }
 
 /**
- * Ledger Table state store for searching, filtering, and pagination.
+ * Ledger Table state store.
  */
 let currentLedgerState = {
   data: [],
@@ -175,7 +172,7 @@ let currentLedgerState = {
 };
 
 /**
- * Updates filter options in the status dropdown based on the active dataset.
+ * Updates filter options in the status dropdown based on active dataset.
  */
 export function updateLedgerFilters(data, tabType) {
   const select = document.getElementById('ledger-filter-status');
@@ -196,7 +193,7 @@ export function updateLedgerFilters(data, tabType) {
 }
 
 /**
- * Populates raw Data Ledger grid table views with search, filtering, and pagination.
+ * Populates raw Data Ledger grid table views.
  */
 export function renderLedgerTable(data, tabType, options = {}) {
   const table = document.getElementById('ledger-table');
@@ -208,7 +205,6 @@ export function renderLedgerTable(data, tabType, options = {}) {
 
   if (!table) return;
 
-  // Update current state parameters
   if (data) currentLedgerState.data = data;
   if (tabType) currentLedgerState.tabType = tabType;
   if (options.searchQuery !== undefined) currentLedgerState.searchQuery = options.searchQuery.toLowerCase().trim();
@@ -219,15 +215,13 @@ export function renderLedgerTable(data, tabType, options = {}) {
   const rawData = currentLedgerState.data || [];
   const type = currentLedgerState.tabType;
 
-  // 1. Filter dataset
+  // Filter dataset
   let filtered = rawData.filter(item => {
-    // Status filter
     const statusVal = type === 'deals' ? item.status : item.executionStatus;
     if (statusFilter !== 'ALL' && statusVal !== statusFilter) {
       return false;
     }
 
-    // Search query filter
     if (searchQuery) {
       if (type === 'deals') {
         const nameMatch = (item.name || '').toLowerCase().includes(searchQuery);
@@ -247,12 +241,10 @@ export function renderLedgerTable(data, tabType, options = {}) {
     return true;
   });
 
-  // 2. Update record count badge
   if (recordCountBadge) {
-    recordCountBadge.innerText = `${filtered.length} Records (${rawData.length} Total)`;
+    recordCountBadge.innerText = `${filtered.length} Records`;
   }
 
-  // 3. Paginate
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(Math.max(1, currentPage), totalPages);
   currentLedgerState.currentPage = page;
@@ -260,7 +252,6 @@ export function renderLedgerTable(data, tabType, options = {}) {
   const startIdx = (page - 1) * pageSize;
   const pageData = filtered.slice(startIdx, startIdx + pageSize);
 
-  // Update pagination UI controls
   if (pageInfo) pageInfo.innerText = `Showing ${filtered.length > 0 ? startIdx + 1 : 0}-${Math.min(startIdx + pageSize, filtered.length)} of ${filtered.length}`;
   if (pageNumSpan) pageNumSpan.innerText = `${page} / ${totalPages}`;
   if (prevBtn) prevBtn.disabled = page <= 1;
@@ -273,7 +264,7 @@ export function renderLedgerTable(data, tabType, options = {}) {
 
   if (pageData.length === 0) {
     thead.innerHTML = '';
-    tbody.innerHTML = `<tr><td colspan="7" class="table-empty-cell">No matching ${type === 'deals' ? 'deals' : 'work orders'} found. Try clearing your search filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty-cell">No matching ${type === 'deals' ? 'deals' : 'work orders'} found. Try clearing your search query.</td></tr>`;
     return;
   }
 
@@ -282,7 +273,7 @@ export function renderLedgerTable(data, tabType, options = {}) {
       <tr>
         <th>Deal Opportunity</th>
         <th>Client Code</th>
-        <th>Value</th>
+        <th class="text-right">Value</th>
         <th>Stage</th>
         <th>Status</th>
         <th>Sector</th>
@@ -292,12 +283,12 @@ export function renderLedgerTable(data, tabType, options = {}) {
     
     tbody.innerHTML = pageData.map(d => `
       <tr>
-        <td><strong>${d.name}</strong></td>
+        <td><strong class="row-title">${d.name}</strong></td>
         <td><code>${d.clientCode}</code></td>
         <td class="text-right num-cell">${formatCurrency(d.value)}</td>
-        <td><span class="cell-tag">${d.stage}</span></td>
-        <td>${getStatusBadge(d.status)}</td>
-        <td>${d.sector}</td>
+        <td><span class="cell-subtext">${d.stage}</span></td>
+        <td>${getStatusPill(d.status)}</td>
+        <td><span class="cell-subtext">${d.sector}</span></td>
         <td><code>${d.createdDate || 'N/A'}</code></td>
       </tr>
     `).join('');
@@ -306,10 +297,10 @@ export function renderLedgerTable(data, tabType, options = {}) {
     thead.innerHTML = `
       <tr>
         <th>Serial #</th>
-        <th>Deal / Project Name</th>
+        <th>Project / Deal Name</th>
         <th>Customer Code</th>
         <th>Execution Status</th>
-        <th>Amount (Excl GST)</th>
+        <th class="text-right">Amount (Excl GST)</th>
         <th>Billing Status</th>
         <th>Delivery Target</th>
       </tr>
@@ -318,11 +309,11 @@ export function renderLedgerTable(data, tabType, options = {}) {
     tbody.innerHTML = pageData.map(w => `
       <tr>
         <td><code>${w.serialNumber}</code></td>
-        <td><strong>${w.dealName}</strong></td>
+        <td><strong class="row-title">${w.dealName}</strong></td>
         <td><code>${w.customerCode}</code></td>
-        <td>${getStatusBadge(w.executionStatus)}</td>
+        <td>${getStatusPill(w.executionStatus)}</td>
         <td class="text-right num-cell">${formatCurrency(w.amountExclGst)}</td>
-        <td>${getStatusBadge(w.billingStatus)}</td>
+        <td>${getStatusPill(w.billingStatus)}</td>
         <td><code>${w.endDate || 'N/A'}</code></td>
       </tr>
     `).join('');

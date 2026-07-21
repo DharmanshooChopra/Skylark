@@ -8,7 +8,7 @@
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -30,344 +30,375 @@
     <button id="close-error-banner" aria-label="Close Error Banner">&times;</button>
   </div>
 
-  <!-- App Header -->
+  <!-- Executive Header -->
   <header class="app-header">
-    <div class="header-logo">
-      <span class="logo-icon">⚡</span>
-      <span class="logo-text">SKYLARK <span class="logo-subtext">// EXECUTIVE TERMINAL</span></span>
-    </div>
-    
-    <div class="header-status">
-      <div id="connection-badge" class="connection-badge offline" title="Monday.com API Connection Status">
-        <span class="badge-dot"></span>
-        <span class="badge-text">DISCONNECTED</span>
-      </div>
-      
-      <div id="ai-badge" class="connection-badge online" title="AI Provider Pipeline Status">
-        <span class="badge-dot"></span>
-        <span class="badge-text">AI ENGINE ACTIVE</span>
+    <div class="header-left">
+      <div class="header-logo">
+        <span class="logo-mark">⚡</span>
+        <span class="logo-title">SKYLARK <span class="logo-subtitle">EXECUTIVE</span></span>
       </div>
 
-      <div id="sync-status" class="sync-status">
-        Sync: <span id="sync-time">Never</span>
-      </div>
+      <!-- Segmented View Switcher -->
+      <nav class="header-nav" aria-label="Main Navigation">
+        <button id="nav-terminal" class="nav-tab active" aria-current="page">
+          <span class="nav-tab-icon">📊</span> Executive Terminal
+        </button>
+        <button id="nav-ledger" class="nav-tab">
+          <span class="nav-tab-icon">📋</span> Data Ledger
+        </button>
+      </nav>
     </div>
     
-    <div class="header-actions">
-      <button id="btn-sync" class="btn btn-secondary btn-icon" aria-label="Force Synchronize Data">
-        <span class="icon">↻</span> Sync Now
-      </button>
-      <button id="btn-settings-toggle" class="btn btn-secondary btn-icon" aria-label="Open Settings">
-        <span class="icon">⚙</span> Settings
-      </button>
+    <div class="header-right">
+      <div class="status-pill-group">
+        <div id="connection-badge" class="status-pill online" title="Monday.com Integration Status">
+          <span class="pill-dot"></span>
+          <span class="badge-text">MONDAY LIVE</span>
+        </div>
+        
+        <div id="ai-badge" class="status-pill online" title="AI Provider Status">
+          <span class="pill-dot"></span>
+          <span class="badge-text">AI ACTIVE</span>
+        </div>
+
+        <div class="sync-timestamp">
+          <span class="timestamp-label">Synced:</span>
+          <span id="sync-time">Just now</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="btn-sync" class="btn btn-ghost" aria-label="Synchronize Data">
+          <span class="btn-icon">↻</span> Refresh
+        </button>
+        <button id="btn-settings-toggle" class="btn btn-ghost btn-icon-only" aria-label="Open Settings" title="Settings">
+          ⚙
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Main Layout -->
-  <div class="main-layout">
+  <!-- Main Container -->
+  <main class="main-container">
     
-    <!-- Sidebar Navigation -->
-    <nav class="sidebar-nav" aria-label="Main Navigation">
-      <button id="nav-terminal" class="nav-item active" aria-current="page">
-        <span class="nav-icon">📊</span> Terminal
-      </button>
-      <button id="nav-ledger" class="nav-item">
-        <span class="nav-icon">📋</span> Data Ledger
-      </button>
-    </nav>
-
-    <!-- Content Workspace -->
-    <main class="content-workspace">
+    <!-- Executive Terminal View -->
+    <section id="view-terminal" class="workspace-view">
       
-      <!-- Terminal View -->
-      <section id="view-terminal" class="workspace-view">
+      <!-- Hero Metric Pulse Cards (4 Primary Executive Cards) -->
+      <div id="kpi-grid" class="kpi-grid">
+        <!-- KPI Cards rendered dynamically via JavaScript -->
+        <div class="kpi-card skeleton">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line tall"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="kpi-card skeleton">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line tall"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="kpi-card skeleton">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line tall"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="kpi-card skeleton">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line tall"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+
+      <!-- Main Dual Stream Grid -->
+      <div class="split-pane">
         
-        <!-- KPI Pulse Grid (6 Cards) -->
-        <div id="kpi-grid" class="kpi-grid">
-          <!-- KPI Cards rendered dynamically -->
-          <div class="kpi-card skeleton">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line tall"></div>
-            <div class="skeleton-line short"></div>
+        <!-- Left Stream: Query Console & Executive Briefings -->
+        <div class="pane-column main-stream">
+          
+          <!-- Executive Query Bar -->
+          <div class="panel-card query-card">
+            <div class="card-header-clean">
+              <span class="card-tag">AI ORCHESTRATION</span>
+              <h2 class="card-heading">Executive Decision Query</h2>
+            </div>
+            
+            <div class="query-input-container">
+              <input type="text" id="query-input" placeholder="Ask about revenue leakage, backlog delays, or cycle velocity... (Ctrl+K)" aria-label="Natural Language Query Input">
+              <button id="btn-query" class="btn btn-primary">Run Query</button>
+            </div>
+
+            <div id="suggested-actions" class="suggested-actions">
+              <!-- Action chips rendered dynamically -->
+            </div>
           </div>
-          <div class="kpi-card skeleton">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line tall"></div>
-            <div class="skeleton-line short"></div>
+
+          <!-- AI Briefing Report Card -->
+          <div id="response-panel" class="panel-card response-panel hidden">
+            <div class="response-header">
+              <div class="brief-title-group">
+                <span class="card-tag tag-purple">SYNTHESIZED BRIEFING</span>
+                <h2 class="card-heading">Executive Report</h2>
+              </div>
+              <div id="brief-confidence" class="confidence-badge">92% Confidence</div>
+            </div>
+            
+            <div id="brief-content" class="brief-content markdown-body">
+              <!-- Brief output -->
+            </div>
+
+            <details class="confidence-details">
+              <summary>Methodology & Assumptions Ledger</summary>
+              <div class="details-body">
+                <p><strong>Evidence:</strong> <span id="conf-evidence">N/A</span></p>
+                <p><strong>Assumptions:</strong> <span id="conf-assumptions">N/A</span></p>
+                <p><strong>Limitations:</strong> <span id="conf-limitations">N/A</span></p>
+              </div>
+            </details>
           </div>
-          <div class="kpi-card skeleton">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line tall"></div>
-            <div class="skeleton-line short"></div>
-          </div>
-          <div class="kpi-card skeleton">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line tall"></div>
-            <div class="skeleton-line short"></div>
-          </div>
-          <div class="kpi-card skeleton">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line tall"></div>
-            <div class="skeleton-line short"></div>
-          </div>
-          <div class="kpi-card skeleton">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line tall"></div>
-            <div class="skeleton-line short"></div>
+          
+          <!-- Empty State / Welcome Console -->
+          <div id="query-empty-state" class="panel-card empty-panel-state">
+            <div class="empty-icon-glow">⚡</div>
+            <h3>Executive Intelligence Console</h3>
+            <p>Query Skylark to synthesize cross-board operational and pipeline analytics into an executive decision brief.</p>
+            
+            <div class="welcome-suggestions">
+              <button class="welcome-sug-btn" data-query="Calculate won deals, backlog value, and revenue leakage">
+                <span class="sug-icon">📊</span> Overview Operations & Sales Status
+              </button>
+              <button class="welcome-sug-btn" data-query="Analyze backlog bottleneck delays and delayed deliveries">
+                <span class="sug-icon">🚨</span> Audit Stalled Backlog Bottlenecks
+              </button>
+              <button class="welcome-sug-btn" data-query="What is the average sales-to-operations handoff cycle time?">
+                <span class="sug-icon">⏱</span> Audit Handoff Cycle Velocities
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Split Pane: Analytics & Executive Intelligence -->
-        <div class="split-pane">
+        <!-- Right Stream: Dynamics Visualization & System Health -->
+        <div class="pane-column diagnostics-column">
           
-          <!-- Left Column: Executive Query Panel -->
-          <div class="pane-column main-stream">
-            <div class="panel-card query-card">
-              <h2 class="panel-title">EXECUTIVE INTEL QUERY</h2>
-              
-              <div class="query-input-container">
-                <input type="text" id="query-input" placeholder="Ask about bottlenecks, leakage, or cycle times... (Ctrl+K)" aria-label="Natural Language Query input">
-                <button id="btn-query" class="btn btn-primary">Run Query</button>
-              </div>
-
-              <div id="suggested-actions" class="suggested-actions">
-                <!-- Inline suggested action flags will render here -->
-              </div>
+          <!-- Visualization & Reasoning Card -->
+          <div id="chart-card" class="panel-card chart-card hidden">
+            <div class="card-header-clean">
+              <span class="card-tag">ANALYTICS</span>
+              <h2 class="card-heading">Visual Dynamics</h2>
             </div>
-
-            <!-- Executive Response Brief Panel -->
-            <div id="response-panel" class="panel-card response-panel hidden">
-              <div class="response-header">
-                <h2 class="panel-title">AI EXECUTIVE BRIEF</h2>
-                <div id="brief-confidence" class="confidence-badge">92% Confidence</div>
-              </div>
-              
-              <div id="brief-content" class="brief-content markdown-body">
-                <!-- Compiled briefing output is drawn here -->
-              </div>
-
-              <!-- Confidence Details -->
-              <details class="confidence-details">
-                <summary>Confidence & Methodology Ledger</summary>
-                <div class="details-body">
-                  <p><strong>Evidence:</strong> <span id="conf-evidence">N/A</span></p>
-                  <p><strong>Assumptions:</strong> <span id="conf-assumptions">N/A</span></p>
-                  <p><strong>Limitations:</strong> <span id="conf-limitations">N/A</span></p>
-                </div>
-              </details>
-            </div>
-            
-            <!-- Default Welcome/Empty State when no query is active -->
-            <div id="query-empty-state" class="panel-card empty-panel-state">
-              <div class="empty-icon">⚡</div>
-              <h3>Analytical Console Ready</h3>
-              <p>Type a natural language request or select a suggested investigation below to compile a decision brief.</p>
-              <div class="welcome-suggestions">
-                <button class="welcome-sug-btn" data-query="Calculate won deals, backlog value, and revenue leakage">Overview Operations and Pipeline Status</button>
-                <button class="welcome-sug-btn" data-query="Analyze backlog bottleneck delays and delayed deliveries">List Stalled Backlog Bottlenecks</button>
-                <button class="welcome-sug-btn" data-query="What is the average sales-to-operations handoff cycle time?">Audit Handoff Cycle Velocities</button>
-              </div>
+            <div class="chart-container">
+              <canvas id="analytics-chart"></canvas>
             </div>
           </div>
 
-          <!-- Right Column: Visual Ledger & Diagnostics -->
-          <div class="pane-column diagnostics-column">
+          <!-- AI Execution Reasoning Trace Card -->
+          <div id="timeline-card" class="panel-card timeline-card hidden">
+            <div class="card-header-clean">
+              <span class="card-tag">TRACE</span>
+              <h2 class="card-heading">Reasoning Steps</h2>
+            </div>
+            <div id="timeline-steps" class="timeline-steps">
+              <!-- Dynamic timeline -->
+            </div>
+          </div>
+
+          <!-- Data Health Monitor Card -->
+          <div class="panel-card health-card">
+            <div class="card-header-clean">
+              <span class="card-tag">INTEGRITY AUDIT</span>
+              <h2 class="card-heading">Data Health Monitor</h2>
+            </div>
+
+            <div class="health-overview">
+              <div class="health-gauge-box">
+                <div id="health-score" class="health-score-number">--</div>
+                <div class="health-score-caption">INTEGRITY SCORE</div>
+              </div>
+              
+              <div class="health-stats-grid">
+                <div class="health-stat-item">
+                  <span class="health-stat-label">Total Items</span>
+                  <span id="health-total" class="health-stat-val">--</span>
+                </div>
+                <div class="health-stat-item">
+                  <span class="health-stat-label">Valid Items</span>
+                  <span id="health-valid" class="health-stat-val">--</span>
+                </div>
+                <div class="health-stat-item">
+                  <span class="health-stat-label">Headers Removed</span>
+                  <span id="health-removed" class="health-stat-val">--</span>
+                </div>
+                <div class="health-stat-item">
+                  <span class="health-stat-label">Imputed Fields</span>
+                  <span id="health-imputed" class="health-stat-val">--</span>
+                </div>
+              </div>
+            </div>
             
-            <!-- Dynamic Chart Display Card -->
-            <div id="chart-card" class="panel-card chart-card hidden">
-              <h2 class="panel-title">DYNAMICS VISUALIZATION</h2>
-              <div class="chart-container">
-                <canvas id="analytics-chart"></canvas>
-              </div>
-            </div>
-
-            <!-- AI Reasoning Timeline -->
-            <div id="timeline-card" class="panel-card timeline-card hidden">
-              <h2 class="panel-title">EXECUTION REASONING TRACE</h2>
-              <div id="timeline-steps" class="timeline-steps">
-                <!-- Dynamic timeline execution trace -->
-              </div>
-            </div>
-
-            <!-- Data Quality Audit Monitor -->
-            <div class="panel-card health-card">
-              <h2 class="panel-title">DATA HEALTH MONITOR</h2>
-              <div class="health-summary">
-                <div id="health-score" class="health-score-value">--</div>
-                <div class="health-score-label">DATA HEALTH INDEX</div>
-              </div>
-              
-              <div class="health-metrics-grid">
-                <div class="health-metric">
-                  <span class="health-metric-label">Total Records</span>
-                  <span id="health-total" class="health-metric-val">--</span>
-                </div>
-                <div class="health-metric">
-                  <span class="health-metric-label">Valid Rows</span>
-                  <span id="health-valid" class="health-metric-val">--</span>
-                </div>
-                <div class="health-metric">
-                  <span class="health-metric-label">Discarded / Headers</span>
-                  <span id="health-removed" class="health-metric-val">--</span>
-                </div>
-                <div class="health-metric">
-                  <span class="health-metric-label">Imputed Values</span>
-                  <span id="health-imputed" class="health-metric-val">--</span>
-                </div>
-              </div>
-              
-              <div id="health-warnings" class="health-warnings hidden">
-                <div class="warnings-title">System Anomalies & Logs</div>
-                <ul id="warnings-list" class="warnings-list">
-                  <!-- Warning lines from cleaner go here -->
-                </ul>
-              </div>
-            </div>
-
-            <!-- Activity Logs -->
-            <div class="panel-card activity-card">
-              <h2 class="panel-title">SYSTEM ACTIVITIES LOG</h2>
-              <ul id="activity-log" class="activity-log">
-                <!-- Real-time activity entries -->
+            <div id="health-warnings" class="health-warnings hidden">
+              <div class="warnings-title">System Anomalies & Logs</div>
+              <ul id="warnings-list" class="warnings-list">
+                <!-- Warnings -->
               </ul>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- Data Ledger View -->
-      <section id="view-ledger" class="workspace-view hidden">
-        <div class="panel-card ledger-panel">
-          <div class="ledger-header">
-            <div class="ledger-title-group">
-              <h2 class="panel-title">CANONICAL BUSINESS LEDGER</h2>
-              <span id="ledger-record-count" class="ledger-count-badge">0 Records</span>
+          <!-- System Activity Log Card -->
+          <div class="panel-card activity-card">
+            <div class="card-header-clean">
+              <span class="card-tag">ACTIVITY</span>
+              <h2 class="card-heading">System Log</h2>
             </div>
-            
-            <div class="ledger-controls">
-              <div class="ledger-search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="ledger-search" placeholder="Search name, code, sector..." aria-label="Search Ledger Table">
-              </div>
-              <select id="ledger-filter-status" class="ledger-filter-select" aria-label="Filter by Status">
-                <option value="ALL">All Statuses</option>
-              </select>
-              <div class="ledger-view-tabs">
-                <button id="btn-tab-deals" class="ledger-tab active">Normalized Deals</button>
-                <button id="btn-tab-wos" class="ledger-tab">Normalized Work Orders</button>
-              </div>
-            </div>
+            <ul id="activity-log" class="activity-log">
+              <!-- Logs -->
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Data Ledger View -->
+    <section id="view-ledger" class="workspace-view hidden">
+      <div class="panel-card ledger-panel">
+        
+        <div class="ledger-toolbar">
+          <div class="ledger-title-group">
+            <h2 class="card-heading">Canonical Business Ledger</h2>
+            <span id="ledger-record-count" class="badge-tag">0 Records</span>
           </div>
           
-          <div class="ledger-table-container">
-            <table id="ledger-table" class="ledger-table">
-              <thead>
-                <!-- Table headers loaded dynamically -->
-              </thead>
-              <tbody>
-                <!-- Table rows loaded dynamically -->
-              </tbody>
-            </table>
-          </div>
-
-          <div id="ledger-pagination" class="ledger-pagination">
-            <span id="ledger-page-info" class="pagination-info">Showing 0 of 0</span>
-            <div class="pagination-buttons">
-              <button id="btn-page-prev" class="btn btn-secondary btn-sm" disabled>&lt; Prev</button>
-              <span id="ledger-page-num" class="page-num">1</span>
-              <button id="btn-page-next" class="btn btn-secondary btn-sm" disabled>Next &gt;</button>
+          <div class="ledger-actions">
+            <div class="ledger-search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="ledger-search" placeholder="Search name, code, sector..." aria-label="Search Ledger Table">
+            </div>
+            
+            <select id="ledger-filter-status" class="ledger-select" aria-label="Filter by Status">
+              <option value="ALL">All Statuses</option>
+            </select>
+            
+            <div class="segmented-control">
+              <button id="btn-tab-deals" class="segment-btn active">Normalized Deals</button>
+              <button id="btn-tab-wos" class="segment-btn">Normalized Work Orders</button>
             </div>
           </div>
         </div>
-      </section>
-    </main>
-  </div>
+        
+        <div class="ledger-table-wrapper">
+          <table id="ledger-table" class="ledger-table">
+            <thead>
+              <!-- Headers -->
+            </thead>
+            <tbody>
+              <!-- Rows -->
+            </tbody>
+          </table>
+        </div>
 
-  <!-- Settings Slide-out / Overlaid Panel -->
-  <div id="settings-panel" class="settings-panel hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <div class="settings-header">
-      <h2 id="settings-title">INTEGRATION CONFIGURATION</h2>
+        <div id="ledger-pagination" class="ledger-pagination">
+          <span id="ledger-page-info" class="pagination-info">Showing 0 of 0</span>
+          <div class="pagination-controls">
+            <button id="btn-page-prev" class="btn btn-ghost btn-sm" disabled>&lt; Previous</button>
+            <span id="ledger-page-num" class="page-indicator">1</span>
+            <button id="btn-page-next" class="btn btn-ghost btn-sm" disabled>Next &gt;</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Settings Drawer Modal -->
+  <div id="settings-panel" class="settings-drawer hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="drawer-header">
+      <h2 id="settings-title">Platform Configuration</h2>
       <button id="btn-settings-close" class="btn-close" aria-label="Close Settings">&times;</button>
     </div>
     
-    <div class="settings-body">
+    <div class="drawer-body">
       <form id="settings-form">
-        <h3 class="settings-section-title">Credentials</h3>
-        
-        <div class="form-group">
-          <label for="input-monday-token">Monday.com Personal API Token</label>
-          <input type="password" id="input-monday-token" placeholder="Paste personal API token..." autocomplete="off">
-          <span class="help-text">Stores in secure memory. Leave empty to fallback to server environment value.</span>
-        </div>
-
-        <div class="form-group">
-          <label for="select-llm-provider">LLM Provider</label>
-          <select id="select-llm-provider">
-            <option value="gemini">Google Gemini Developer API</option>
-            <option value="openai">OpenAI Compatible Endpoint</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="input-llm-key">AI Engine API Key</label>
-          <input type="password" id="input-llm-key" placeholder="Paste Gemini or OpenAI key..." autocomplete="off">
-        </div>
-
-        <h3 class="settings-section-title">Board Selection</h3>
-        
-        <div class="form-group">
-          <button type="button" id="btn-fetch-boards" class="btn btn-secondary btn-full">
-            Fetch Mapped Boards List
-          </button>
-        </div>
-
-        <div class="form-group">
-          <label for="select-deals-board">Sales Deals Board</label>
-          <select id="select-deals-board">
-            <option value="">-- Fetch boards list first --</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="select-wos-board">Operations Work Orders Board</label>
-          <select id="select-wos-board">
-            <option value="">-- Fetch boards list first --</option>
-          </select>
-        </div>
-
-        <h3 class="settings-section-title">Field Columns Mapping</h3>
-        <p class="section-desc">Map core fields from Monday columns to internal canonical types. (Auto-detection is used if left blank).</p>
-        
-        <div class="mapping-grid">
-          <div>
-            <span class="mapping-board-title">Deals Mappings</span>
-            <div class="form-group sm">
-              <label for="map-deal-name">Deal Name Column ID</label>
-              <input type="text" id="map-deal-name" placeholder="E.g. name / text_1">
-            </div>
-            <div class="form-group sm">
-              <label for="map-deal-value">Deal Value Column ID</label>
-              <input type="text" id="map-deal-value" placeholder="E.g. numbers">
-            </div>
-            <div class="form-group sm">
-              <label for="map-deal-status">Deal Status Column ID</label>
-              <input type="text" id="map-deal-status" placeholder="E.g. status">
-            </div>
-          </div>
+        <div class="form-section">
+          <h3 class="form-section-title">API Credentials</h3>
           
-          <div>
-            <span class="mapping-board-title">Work Orders Mappings</span>
-            <div class="form-group sm">
-              <label for="map-wo-name">Deal Name Column ID</label>
-              <input type="text" id="map-wo-name" placeholder="E.g. text">
+          <div class="form-group">
+            <label for="input-monday-token">Monday.com Personal API Token</label>
+            <input type="password" id="input-monday-token" placeholder="Paste personal API token..." autocomplete="off">
+            <span class="help-text">Leave empty to use .env server token.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="select-llm-provider">LLM Provider Engine</label>
+            <select id="select-llm-provider">
+              <option value="gemini">Google Gemini Developer API</option>
+              <option value="openai">OpenAI Compatible API</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="input-llm-key">AI API Key</label>
+            <input type="password" id="input-llm-key" placeholder="Paste Gemini or OpenAI key..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">Monday.com Board Settings</h3>
+          
+          <div class="form-group">
+            <button type="button" id="btn-fetch-boards" class="btn btn-ghost btn-full">
+              Fetch Boards List
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="select-deals-board">Sales Deals Board</label>
+            <select id="select-deals-board">
+              <option value="">-- Fetch boards first --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="select-wos-board">Work Orders Board</label>
+            <select id="select-wos-board">
+              <option value="">-- Fetch boards first --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">Column ID Mappings</h3>
+          <p class="section-desc">Override auto-mapped column IDs if required.</p>
+          
+          <div class="mapping-grid">
+            <div class="mapping-col">
+              <span class="mapping-label">Deals Board</span>
+              <div class="form-group sm">
+                <label for="map-deal-name">Deal Name</label>
+                <input type="text" id="map-deal-name" placeholder="name">
+              </div>
+              <div class="form-group sm">
+                <label for="map-deal-value">Value</label>
+                <input type="text" id="map-deal-value" placeholder="numeric_mm5f31m2">
+              </div>
+              <div class="form-group sm">
+                <label for="map-deal-status">Status</label>
+                <input type="text" id="map-deal-status" placeholder="color_mm5f9xkm">
+              </div>
             </div>
-            <div class="form-group sm">
-              <label for="map-wo-serial">Serial # Column ID</label>
-              <input type="text" id="map-wo-serial" placeholder="E.g. serial">
-            </div>
-            <div class="form-group sm">
-              <label for="map-wo-status">Execution Status Column ID</label>
-              <input type="text" id="map-wo-status" placeholder="E.g. color">
+            
+            <div class="mapping-col">
+              <span class="mapping-label">Work Orders Board</span>
+              <div class="form-group sm">
+                <label for="map-wo-name">Project Name</label>
+                <input type="text" id="map-wo-name" placeholder="name">
+              </div>
+              <div class="form-group sm">
+                <label for="map-wo-serial">Serial #</label>
+                <input type="text" id="map-wo-serial" placeholder="dropdown_mm5frdrq">
+              </div>
+              <div class="form-group sm">
+                <label for="map-wo-status">Execution Status</label>
+                <input type="text" id="map-wo-status" placeholder="color_mm5fs03f">
+              </div>
             </div>
           </div>
         </div>
@@ -379,8 +410,8 @@
     </div>
   </div>
 
-  <!-- Settings overlay backdrop -->
-  <div id="settings-backdrop" class="settings-backdrop hidden"></div>
+  <!-- Drawer Backdrop -->
+  <div id="settings-backdrop" class="drawer-backdrop hidden"></div>
 
 </body>
 </html>
